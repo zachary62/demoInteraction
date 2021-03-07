@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+	<style>
+
+	body {
+	  font: 10px sans-serif;
+    background: rgba(102, 144, 242, 0.39);
+	}
+
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+
+  table, th, td {
+    border: 1px solid black;
+
+  }
+
+  .box{
+    padding: 12px;
+    background: #fff;
+    margin: 7px 7px 0 0;
+    display: inline-block;
+    max-width: -moz-fit-content;
+  }
+
+
+tooltip {
+
+}
+
+	</style>
+</head>
+
+<body>
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+<script src="https://d3js.org/d3-color.v2.min.js"></script>
+<script src="https://d3js.org/d3-interpolate.v2.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v2.min.js"></script>
+
+
+<script>
+
+let visualizations = [];
+let dataToViz = {};
+let selectedKey = ""
+
+var dragtooltip = d3.behavior.drag()
+                    // .origin(Object)
+                    .on("dragstart", function() {
+                      let data = d3.select(this).data();
+
+                      // update tooltip text
+                      // get current data key
+                      // two cases for data() and dataum()
+                      if(Array.isArray(data[0])){
+                        text1.text(data[0][0].symbol);
+                        text2.text(data[0][0].type);
+                        selectedKey = data[0][0].symbol + " " + data[0][0].type;
+                      }else{
+                        text1.text(data[0].symbol);
+                        text2.text(data[0].type);
+                        selectedKey = data[0].symbol + " " + data[0].type;
+                      }
+                      // update location
+                      tooltip.style("left",(event.pageX+10) + "px")
+                             .style("top", (event.pageY+10) + "px");
+                      return tooltip.style("visibility", "visible");})
+
+                    .on("drag", function() {
+                      tooltip.style("left",(event.pageX+10) + "px")
+                             .style("top", (event.pageY+10) + "px");})
+
+                    .on("dragend", function() {
+                      //iterate throgh visulizations to find the mouse over one
+                      for (var i = 0; i < visualizations.length; i++) {
+                          // console.log(visualizations[i])
+                        if(visualizations[i].enter === true){
+                          // console.log("hi")
+                          let cur = visualizations[i];
+                          let prev = dataToViz[selectedKey];
+                          if(cur != prev){
+                            // console.log("hi2")
+                            let data = prev.data[selectedKey];
+                            prev.removeData(data)
+                            prev.clear()
+                            prev.plot()
+                            cur.addData(data)
+                            cur.clear()
+                            cur.plot()
+                          }
+
+
+                          break;
+                        }
+                      }
+                      return tooltip.style("visibility", "hidden");})
+
+
+let tooltip = d3.select("body").append('svg')
+            .style("position", "absolute")
+            .style("visibility", "hidden")
+            .attr('width', 100)
+            .attr('height', 40);
+
+tooltip.append('rect')
+            .attr('width', 100)
+            .attr('height', 40)
+            .attr('stroke', '#b5b5b5')
+            .attr('fill', '#eee')
+            .attr("class", "tooltip")
+            .call(dragtooltip);
+            // .style("opacity", 0)
+
+let text1 = tooltip.append('text')
+                .attr('x', 5 )
+                .attr('y', 15)
+                .text("data")
+
+let text2 = tooltip.append('text')
+                .attr('x', 5 )
+                .attr('y', 25)
+                .text("data")
+
+
+let	parseDate = d3.time.format("%m/%d/%Y").parse;
+
+class Data{
+    constructor(symbol, type, data) {
+      this.data = data
+      this.symbol = symbol
+      this.type = type
+
+      this.data.forEach(function(d) {
+              d.date = parseDate(d.date);
+              d.value = +d.value;
+      });
+    }
+
+    getKey(){
+      return this.symbol + " " + this.type
+    }
+}
+
+class Visualization{
+
+    constructor() {
+
+    }
+    addData(data){
+        this.data[data.getKey()] = data
+        dataToViz[data.getKey()] = this
+
+    }
+
+    removeData(data){
+        delete this.data[data.getKey()]
+        delete dataToViz[data.getKey()]
+    }
+
+    plot(){
+
+    }
+    clear(){
+      this.svg.selectAll("*").remove();
+    }
+}
+
+class Linechart extends Visualization{
+
+    constructor() {
+        super()
+        this.data = {}
+        this.svg = d3.select("body").append("div").attr("class", "box").append("svg")
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut);
+        this.enter = false;
+        let vis = this
+        function handleMouseOver(d, i) {vis.enter = true;}
+        function handleMouseOut(d, i){vis.enter = false;}
+    }
+
+
+    plot(){
+        let color = d3.schemeCategory10
+
+        let margin = {top: 20, right: 20, bottom: 70, left: 40},
+            width = 350 - margin.left - margin.right,
+            height = 200 - margin.top - margin.bottom,
+            legendmargin = 20 * Object.keys(this.data).length + 10;
+
+        var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+        var y = d3.scale.linear().range([height, 0]);
+
+        this.image = this.svg.attr("width", width + margin.left + margin.right + legendmargin)
+                          .attr("height", height + margin.top + margin.bottom)
+                          .append("g")
+                          .attr("transform",
+                                "translate(" + margin.left + "," + margin.top + ")");
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickFormat(d3.time.format("%m/%d/%Y"))
+            .tickValues([parseDate("12/31/2019"),parseDate("1/31/2020"), parseDate("2/28/2020"),
+                          parseDate("3/31/2020"),parseDate("4/30/2020"),parseDate("5/29/2020"),
+                          parseDate("6/30/2020"),parseDate("7/31/2020"),parseDate("8/31/2020"),
+                          parseDate("9/30/2020"),parseDate("10/30/2020"),parseDate("11/30/2020"),
+                          parseDate("12/31/2020")]);
+
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .ticks(10);
+
+        x.domain(dataTSLAPrice.map(function(d) { return d.date; }));
+        let max = 0
+        let min = 0
+        for (var key in this.data){
+          max = Math.max(max, d3.max(this.data[key].data, function(d) { return d.value; }))
+          min = Math.min(min, d3.min(this.data[key].data, function(d) { return d.value; }))
+        }
+        y.domain([min, max]);
+
+        // build x axis
+        this.image.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis)
+        .selectAll("text")
+          .style("text-anchor", "end")
+          .attr("dx", "60")
+          .attr("dy", "-.55em")
+          .attr("transform", "rotate(90)" );
+
+        // build y axis
+        this.image.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+          .append("text")
+          .attr("transform", "rotate(90)")
+          .attr("y", 6)
+          .attr("dy", "-1.2em")
+          .attr("dx", "30")
+          .style("text-anchor", "end")
+          .text("Value");
+
+        let i = 0
+        for (var key in this.data){
+          this.image.append("path")
+              .datum(this.data[key].data)
+              .attr("fill", "none")
+              .attr("stroke", color[i])
+              .attr("stroke-width", 2)
+              .attr("d", d3.svg.line()
+                .x(function(d) { return x(d.date) })
+                .y(function(d) { return y(d.value) })
+              )
+              .call(dragtooltip);;
+
+
+           i++;
+        }
+
+
+
+        this.legend = this.svg.append("g")
+                  .attr("transform", "translate(" + (width + margin.left + margin.right) +  "," + margin.top + ")")
+
+        i = 0
+        for (var key in this.data){
+
+          this.legend.append('circle')
+                .datum(this.data[key].data)
+                .attr("cx",i*20)
+                .attr("cy",0)
+                .attr("r", 6)
+                .style("fill", color[i])
+                .attr("id", "active")
+                .call(dragtooltip);
+
+
+
+          this.legend.append("text")
+                .attr("x", 10)
+                .attr("y", -i*20 + 3)
+                .text(key)
+                .attr("transform", "rotate(90)" );
+          i++;
+        }
+
+    }
+
+}
+
+class LinePercentagechart extends Visualization{
+
+    constructor() {
+        super()
+        this.data = {}
+        this.svg = d3.select("body").append("div").attr("class", "box").append("svg")
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut);
+        this.enter = false;
+        let vis = this
+        function handleMouseOver(d, i) {vis.enter = true;}
+        function handleMouseOut(d, i){vis.enter = false;}
+    }
+
+
+    plot(){
+        let color = d3.schemeCategory10
+
+        let margin = {top: 20, right: 20, bottom: 70, left: 40},
+            width = 350 - margin.left - margin.right,
+            height = 200 - margin.top - margin.bottom,
+            legendmargin = 20 * Object.keys(this.data).length + 10;
+
+        var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+        var y = d3.scale.linear().range([height, 0]);
+
+        this.image = this.svg.attr("width", width + margin.left + margin.right + legendmargin)
+                          .attr("height", height + margin.top + margin.bottom)
+                          .append("g")
+                          .attr("transform",
+                                "translate(" + margin.left + "," + margin.top + ")");
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickFormat(d3.time.format("%m/%d/%Y"))
+            .tickValues([parseDate("12/31/2019"),parseDate("1/31/2020"), parseDate("2/28/2020"),
+                          parseDate("3/31/2020"),parseDate("4/30/2020"),parseDate("5/29/2020"),
+                          parseDate("6/30/2020"),parseDate("7/31/2020"),parseDate("8/31/2020"),
+                          parseDate("9/30/2020"),parseDate("10/30/2020"),parseDate("11/30/2020"),
+                          parseDate("12/31/2020")]);
+
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .tickFormat(d3.format(".0%"))
+            .ticks(10);
+
+        x.domain(dataTSLAPrice.map(function(d) { return d.date; }));
+        let max = 0
+        let min = 0
+        for (var key in this.data){
+            let max_value = d3.max(this.data[key].data, function(d) { return d.value; })
+            let min_value = d3.min(this.data[key].data, function(d) { return d.value; })
+            let first_value = this.data[key].data[0].value
+            let max_change = (max_value - first_value)/first_value
+            let min_change = (min_value - first_value)/first_value
+            max = Math.max(max, max_change)
+            min = Math.min(min, min_change)
+        }
+        y.domain([min, max]);
+
+        // build x axis
+        this.image.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis)
+        .selectAll("text")
+          .style("text-anchor", "end")
+          .attr("x", 70)
+          .attr("dy", "-.55em")
+          .attr("transform", "rotate(90)" );
+
+        // build y axis
+        this.image.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+          .append("text")
+          .attr("transform", "rotate(90)")
+          .attr("y", 6)
+          .attr("dy", "-1.2em")
+          .attr("dx", "30")
+          .style("text-anchor", "end")
+          .text("Change%");
+
+        let i = 0
+        for (var key in this.data){
+          let first_value = this.data[key].data[0].value
+          this.image.append("path")
+              .datum(this.data[key].data)
+              .attr("fill", "none")
+              .attr("stroke", color[i])
+              .attr("stroke-width", 2)
+              .attr("d", d3.svg.line()
+                .x(function(d) { return x(d.date) })
+                .y(function(d) { return y((d.value- first_value)/first_value) })
+              )
+              .call(dragtooltip);
+           i++;
+        }
+
+
+
+        this.legend = this.svg.append("g")
+                  .attr("transform", "translate(" + (width + margin.left + margin.right) +  "," + margin.top + ")")
+
+        i = 0
+        for (var key in this.data){
+          this.legend.append("circle")
+                .datum(this.data[key].data)
+                .attr("cx",i*20)
+                .attr("cy",0)
+                .attr("r", 6)
+                .style("fill", color[i])
+                .call(dragtooltip);
+
+
+          this.legend.append("text")
+                .attr("x", 10)
+                .attr("y", -i*20 + 3)
+                .text(key)
+                .attr("transform", "rotate(90)" );
+          i++;
+        }
+
+    }
+
+}
+
+class Table extends Visualization{
+
+    constructor() {
+        super()
+        this.data = {}
+        this.svg = d3.select("body").append("div").attr("class", "box").append("table")
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut);
+        this.enter = false;
+        let vis = this
+        function handleMouseOver(d, i) {vis.enter = true;}
+        function handleMouseOut(d, i){vis.enter = false;}
+    }
+
+
+    plot(){
+
+        let header = this.svg.append("tr")
+
+        let xrange = [ parseDate("12/31/2019"),
+                      parseDate("3/31/2020"),
+                      parseDate("6/30/2020"),
+                      parseDate("9/30/2020"),
+                      parseDate("12/31/2020")];
+
+        header.selectAll("th")
+              .data(["Symbol","Breakdown", "12/31/2019", "3/31/2020", "6/30/2020", "9/30/2020", "12/31/2020"])
+              .enter()
+              .append("th")
+              .text(function(d) { return d;});
+
+        for (var key in this.data){
+          let row = this.svg.append("tr")
+            let filteredData = this.data[key].data.filter(function(d){
+              for(let i = 0; i < xrange.length; i++){
+                if(xrange[i].getTime() === d.date.getTime()){
+                  return true;
+                }
+              }
+              return false;
+            })
+
+            row.selectAll("td")
+                  .data(filteredData)
+                  .enter()
+                  .append("td")
+
+                  .call(dragtooltip)
+                  .text(function(d) { return d.value;})
+                  .attr("id", "key");
+
+            row.insert("td","#" + "key").data(filteredData).text(this.data[key].symbol).call(dragtooltip);
+            row.insert("td","#" + "key").data(filteredData).text(this.data[key].type).call(dragtooltip);
+        }
+
+    }
+
+}
+
+class Barchart extends Visualization{
+
+    constructor() {
+        super()
+        this.data = {}
+        this.svg = d3.select("body").append("div").attr("class", "box").append("svg")
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut);
+        this.enter = false;
+        let vis = this
+        function handleMouseOver(d, i) {vis.enter = true;}
+        function handleMouseOut(d, i){vis.enter = false;}
+    }
+
+
+    plot(){
+        let color = d3.schemeCategory10
+
+        let margin = {top: 20, right: 20, bottom: 70, left: 70},
+            width = 350 - margin.left - margin.right,
+            height = 200 - margin.top - margin.bottom,
+            legendmargin = 20 * Object.keys(this.data).length + 10;
+
+        var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+        var y = d3.scale.linear().range([height, 0]);
+
+        this.image = this.svg.attr("width", width + margin.left + margin.right + legendmargin)
+                          .attr("height", height + margin.top + margin.bottom)
+                          .append("g")
+                          .attr("transform",
+                                "translate(" + margin.left + "," + margin.top + ")");
+
+        let xrange = [ parseDate("12/31/2019"),
+                      parseDate("3/31/2020"),
+                      parseDate("6/30/2020"),
+                      parseDate("9/30/2020"),
+                      parseDate("12/31/2020")];
+
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickFormat(d3.time.format("%m/%d/%Y"))
+            .tickValues(xrange);
+
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .ticks(10);
+
+        x.domain(dataTeslaRevenue.map(function(d) { return d.date; }));
+        let max = 0
+        let min = 0
+        for (var key in this.data){
+          max = Math.max(max, d3.max(this.data[key].data, function(d) { return d.value; }))
+          min = Math.min(min, d3.min(this.data[key].data, function(d) { return d.value; }))
+        }
+        y.domain([min, max]);
+
+        // build x axis
+        this.image.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis)
+        .selectAll("text")
+          .style("text-anchor", "end")
+          .attr("dx", "60")
+          .attr("dy", "-.55em")
+          .attr("transform", "rotate(90)" );
+
+        // build y axis
+        this.image.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+          .append("text")
+          .attr("transform", "rotate(90)")
+          .attr("y", 6)
+          .attr("dy", "-1.2em")
+          .attr("dx", "30")
+          .style("text-anchor", "end")
+          .text("Value");
+
+        let i = 0
+        let count = Object.keys(this.data).length
+        for (var key in this.data){
+            // console.log(key
+            // console.log(this.data[key].data) ;
+            this.image.selectAll("bar")
+            .data(this.data[key].data)
+            .enter().append("rect")
+            .filter(function(d) { return x(d.date) >= 0 })
+            .style("fill", color[i])
+            .attr("x", function(d) {return x(d.date) + i* x.rangeBand()/count; })
+            .attr("width", x.rangeBand()/count)
+            .attr("y", function(d) { return y(d.value); })
+            .attr("height", function(d) { return height - y(d.value); })
+            .call(dragtooltip);
+
+           i++;
+        }
+
+
+
+        this.legend = this.svg.append("g")
+                  .attr("transform", "translate(" + (width + margin.left + margin.right) +  "," + margin.top + ")")
+
+        i = 0
+        for (var key in this.data){
+          this.legend.append("circle")
+                .data(this.data[key].data)
+                .attr("cx",i*20)
+                .attr("cy",0)
+                .attr("r", 6)
+                .style("fill", color[i])
+                .call(dragtooltip);
+          this.legend.append("text")
+                .attr("x", 10)
+                .attr("y", -i*20 + 3)
+                .text(key)
+                .attr("transform", "rotate(90)" );
+          i++;
+        }
+
+    }
+
+}
+
+class BarPercentagechart extends Visualization{
+
+    constructor() {
+        super()
+        this.data = {}
+        this.svg = d3.select("body").append("div").attr("class", "box").append("svg")
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut);
+        this.enter = false;
+        let vis = this
+        function handleMouseOver(d, i) {vis.enter = true;}
+        function handleMouseOut(d, i){vis.enter = false;}
+    }
+
+
+    plot(){
+        let color = d3.schemeCategory10
+
+        let margin = {top: 20, right: 20, bottom: 70, left: 70},
+            width = 350 - margin.left - margin.right,
+            height = 200 - margin.top - margin.bottom,
+            legendmargin = 20 * Object.keys(this.data).length + 10;
+
+        var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+        var y = d3.scale.linear().range([height, 0]);
+
+        this.image = this.svg.attr("width", width + margin.left + margin.right + legendmargin)
+                          .attr("height", height + margin.top + margin.bottom)
+                          .append("g")
+                          .attr("transform",
+                                "translate(" + margin.left + "," + margin.top + ")");
+
+        let xrange = [ parseDate("12/31/2019"),
+                      parseDate("3/31/2020"),
+                      parseDate("6/30/2020"),
+                      parseDate("9/30/2020"),
+                      parseDate("12/31/2020")];
+
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickFormat(d3.time.format("%m/%d/%Y"))
+            .tickValues(xrange);
+
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .ticks(10);
+
+        x.domain(dataTeslaRevenue.map(function(d) { return d.date; }));
+        let max = 0
+        let min = 0
+        for (var key in this.data){
+            let max_value = d3.max(this.data[key].data, function(d) { return d.value; })
+            let min_value = d3.min(this.data[key].data, function(d) { return d.value; })
+            let first_value = this.data[key].data[0].value
+            let max_change = (max_value - first_value)/first_value
+            let min_change = (min_value - first_value)/first_value
+            max = Math.max(max, max_change)
+            min = Math.min(min, min_change)
+        }
+        if(max > min){
+          y.domain([min, max]);
+        }
+        console.log(max,min)
+
+
+
+        // build x axis
+        this.image.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis)
+        .selectAll("text")
+          .style("text-anchor", "end")
+          .attr("dx", "60")
+          .attr("dy", "-.55em")
+          .attr("transform", "rotate(90)" );
+
+        // build y axis
+        this.image.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+          .append("text")
+          .attr("transform", "rotate(90)")
+          .attr("y", 6)
+          .attr("dy", "-1.2em")
+          .attr("dx", "30")
+          .style("text-anchor", "end")
+          .text("Change%");
+
+        let i = 0
+        let count = Object.keys(this.data).length
+        for (var key in this.data){
+            // console.log(key
+            // console.log(this.data[key].data) ;
+            let first_value = this.data[key].data[0].value
+
+            this.image.selectAll("bar")
+            .data(this.data[key].data)
+            .enter().append("rect")
+            .filter(function(d) { return x(d.date) >= 0 })
+            .style("fill", color[i])
+            .attr("x", function(d) {return x(d.date) + i* x.rangeBand()/count; })
+            .attr("width", x.rangeBand()/count)
+            .attr("y", function(d) { return y((d.value- first_value)/first_value) })
+            .attr("height", function(d) { return height - y((d.value- first_value)/first_value); })
+            .call(dragtooltip);
+
+           i++;
+        }
+
+
+
+        this.legend = this.svg.append("g")
+                  .attr("transform", "translate(" + (width + margin.left + margin.right) +  "," + margin.top + ")")
+
+        i = 0
+        for (var key in this.data){
+          this.legend.append("circle")
+                .data(this.data[key].data)
+                .attr("cx",i*20)
+                .attr("cy",0)
+                .attr("r", 6)
+                .style("fill", color[i])
+                .call(dragtooltip);
+          this.legend.append("text")
+                .attr("x", 10)
+                .attr("y", -i*20 + 3)
+                .text(key)
+                .attr("transform", "rotate(90)" );
+          i++;
+        }
+
+    }
+
+}
+
+class Storage extends Visualization{
+
+    constructor() {
+        super()
+        this.data = {}
+        this.svg = d3.select("body").append("div").attr("class", "box").append("svg")
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut);
+        this.enter = false;
+        let vis = this
+        function handleMouseOver(d, i) {vis.enter = true;}
+        function handleMouseOut(d, i){vis.enter = false;}
+    }
+
+
+    plot(){
+      let margin = {top:10, right: 10, bottom: 10, left: 10},
+          width = 10 + 110 * Object.keys(this.data).length,
+          height = 60;
+
+
+      this.image = this.svg.attr("width", width + margin.left + margin.right )
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform",
+                              "translate(" + margin.left + "," + margin.top + ")");
+
+        let i = 0;
+        for (var key in this.data){
+          // console.log(key)
+          this.image.append('rect')
+                  .data(this.data[key].data)
+                  .attr('x', 10 + 110 * i)
+                  .attr('y', 10)
+                  .attr('width', 100)
+                  .attr('height', 40)
+                  .attr('stroke', '#b5b5b5')
+                  .attr('fill', '#eee')
+                  .call(dragtooltip);
+
+          this.image.append('text')
+                  .attr('x', 15 + 110 * i)
+                  .attr('y', 25)
+                  .text(this.data[key].symbol)
+          this.image.append('text')
+                  .attr('x', 15 + 110 * i)
+                  .attr('y', 35)
+                  .text(this.data[key].type)
+          i++;
+        //   let row = this.svg.append("tr")
+        //     row.selectAll("td")
+        //           .data(this.data[key].data)
+        //           .enter()
+        //           .append("td")
+        //           .text(function(d) { return d.value;})
+        //           .attr("id", "key");
+        //     row.insert("td","#" + "key").text(this.data[key].symbol)
+        //     row.insert("td","#" + "key").text(this.data[key].type)
+        }
+
+    }
+
+}
+
+
+
+
+
+  let dataTSLAPrice = [
+      {"symbol":"TSLA","type":"price","date":"12/31/2019","value":83.666},
+      {"symbol":"TSLA","type":"price","date":"1/2/2020","value":86.052002},
+      {"symbol":"TSLA","type":"price","date":"1/3/2020","value":88.601997},
+      {"symbol":"TSLA","type":"price","date":"1/6/2020","value":90.307999},
+      {"symbol":"TSLA","type":"price","date":"1/7/2020","value":93.811996},
+      {"symbol":"TSLA","type":"price","date":"1/8/2020","value":98.428001},
+      {"symbol":"TSLA","type":"price","date":"1/9/2020","value":96.267998},
+      {"symbol":"TSLA","type":"price","date":"1/10/2020","value":95.629997},
+      {"symbol":"TSLA","type":"price","date":"1/13/2020","value":104.972},
+      {"symbol":"TSLA","type":"price","date":"1/14/2020","value":107.584},
+      {"symbol":"TSLA","type":"price","date":"1/15/2020","value":103.699997},
+      {"symbol":"TSLA","type":"price","date":"1/16/2020","value":102.697998},
+      {"symbol":"TSLA","type":"price","date":"1/17/2020","value":102.099998},
+      {"symbol":"TSLA","type":"price","date":"1/21/2020","value":109.440002},
+      {"symbol":"TSLA","type":"price","date":"1/22/2020","value":113.912003},
+      {"symbol":"TSLA","type":"price","date":"1/23/2020","value":114.440002},
+      {"symbol":"TSLA","type":"price","date":"1/24/2020","value":112.963997},
+      {"symbol":"TSLA","type":"price","date":"1/27/2020","value":111.603996},
+      {"symbol":"TSLA","type":"price","date":"1/28/2020","value":113.379997},
+      {"symbol":"TSLA","type":"price","date":"1/29/2020","value":116.197998},
+      {"symbol":"TSLA","type":"price","date":"1/30/2020","value":128.162003},
+      {"symbol":"TSLA","type":"price","date":"1/31/2020","value":130.113998},
+      {"symbol":"TSLA","type":"price","date":"2/3/2020","value":156.0},
+      {"symbol":"TSLA","type":"price","date":"2/4/2020","value":177.412003},
+      {"symbol":"TSLA","type":"price","date":"2/5/2020","value":146.940002},
+      {"symbol":"TSLA","type":"price","date":"2/6/2020","value":149.792007},
+      {"symbol":"TSLA","type":"price","date":"2/7/2020","value":149.613998},
+      {"symbol":"TSLA","type":"price","date":"2/10/2020","value":154.255997},
+      {"symbol":"TSLA","type":"price","date":"2/11/2020","value":154.876007},
+      {"symbol":"TSLA","type":"price","date":"2/12/2020","value":153.457993},
+      {"symbol":"TSLA","type":"price","date":"2/13/2020","value":160.800003},
+      {"symbol":"TSLA","type":"price","date":"2/14/2020","value":160.005997},
+      {"symbol":"TSLA","type":"price","date":"2/18/2020","value":171.679993},
+      {"symbol":"TSLA","type":"price","date":"2/19/2020","value":183.483994},
+      {"symbol":"TSLA","type":"price","date":"2/20/2020","value":179.882004},
+      {"symbol":"TSLA","type":"price","date":"2/21/2020","value":180.199997},
+      {"symbol":"TSLA","type":"price","date":"2/24/2020","value":166.757996},
+      {"symbol":"TSLA","type":"price","date":"2/25/2020","value":159.981995},
+      {"symbol":"TSLA","type":"price","date":"2/26/2020","value":155.759995},
+      {"symbol":"TSLA","type":"price","date":"2/27/2020","value":135.800003},
+      {"symbol":"TSLA","type":"price","date":"2/28/2020","value":133.598007},
+      {"symbol":"TSLA","type":"price","date":"3/2/2020","value":148.723999},
+      {"symbol":"TSLA","type":"price","date":"3/3/2020","value":149.102005},
+      {"symbol":"TSLA","type":"price","date":"3/4/2020","value":149.899994},
+      {"symbol":"TSLA","type":"price","date":"3/5/2020","value":144.908005},
+      {"symbol":"TSLA","type":"price","date":"3/6/2020","value":140.695999},
+      {"symbol":"TSLA","type":"price","date":"3/9/2020","value":121.599998},
+      {"symbol":"TSLA","type":"price","date":"3/10/2020","value":129.065994},
+      {"symbol":"TSLA","type":"price","date":"3/11/2020","value":126.846001},
+      {"symbol":"TSLA","type":"price","date":"3/12/2020","value":112.110001},
+      {"symbol":"TSLA","type":"price","date":"3/13/2020","value":109.323997},
+      {"symbol":"TSLA","type":"price","date":"3/16/2020","value":89.014},
+      {"symbol":"TSLA","type":"price","date":"3/17/2020","value":86.040001},
+      {"symbol":"TSLA","type":"price","date":"3/18/2020","value":72.244003},
+      {"symbol":"TSLA","type":"price","date":"3/19/2020","value":85.528},
+      {"symbol":"TSLA","type":"price","date":"3/20/2020","value":85.505997},
+      {"symbol":"TSLA","type":"price","date":"3/23/2020","value":86.858002},
+      {"symbol":"TSLA","type":"price","date":"3/24/2020","value":101.0},
+      {"symbol":"TSLA","type":"price","date":"3/25/2020","value":107.849998},
+      {"symbol":"TSLA","type":"price","date":"3/26/2020","value":105.632004},
+      {"symbol":"TSLA","type":"price","date":"3/27/2020","value":102.872002},
+      {"symbol":"TSLA","type":"price","date":"3/30/2020","value":100.426003},
+      {"symbol":"TSLA","type":"price","date":"3/31/2020","value":104.800003},
+      {"symbol":"TSLA","type":"price","date":"4/1/2020","value":96.311996},
+      {"symbol":"TSLA","type":"price","date":"4/2/2020","value":90.893997},
+      {"symbol":"TSLA","type":"price","date":"4/3/2020","value":96.001999},
+      {"symbol":"TSLA","type":"price","date":"4/6/2020","value":103.248001},
+      {"symbol":"TSLA","type":"price","date":"4/7/2020","value":109.089996},
+      {"symbol":"TSLA","type":"price","date":"4/8/2020","value":109.767998},
+      {"symbol":"TSLA","type":"price","date":"4/9/2020","value":114.599998},
+      {"symbol":"TSLA","type":"price","date":"4/13/2020","value":130.190002},
+      {"symbol":"TSLA","type":"price","date":"4/14/2020","value":141.977997},
+      {"symbol":"TSLA","type":"price","date":"4/15/2020","value":145.966003},
+      {"symbol":"TSLA","type":"price","date":"4/16/2020","value":149.042007},
+      {"symbol":"TSLA","type":"price","date":"4/17/2020","value":150.778},
+      {"symbol":"TSLA","type":"price","date":"4/20/2020","value":149.272003},
+      {"symbol":"TSLA","type":"price","date":"4/21/2020","value":137.343994},
+      {"symbol":"TSLA","type":"price","date":"4/22/2020","value":146.421997},
+      {"symbol":"TSLA","type":"price","date":"4/23/2020","value":141.126007},
+      {"symbol":"TSLA","type":"price","date":"4/24/2020","value":145.029999},
+      {"symbol":"TSLA","type":"price","date":"4/27/2020","value":159.75},
+      {"symbol":"TSLA","type":"price","date":"4/28/2020","value":153.824005},
+      {"symbol":"TSLA","type":"price","date":"4/29/2020","value":160.102005},
+      {"symbol":"TSLA","type":"price","date":"4/30/2020","value":156.376007},
+      {"symbol":"TSLA","type":"price","date":"5/1/2020","value":140.264008},
+      {"symbol":"TSLA","type":"price","date":"5/4/2020","value":152.238007},
+      {"symbol":"TSLA","type":"price","date":"5/5/2020","value":153.641998},
+      {"symbol":"TSLA","type":"price","date":"5/6/2020","value":156.516006},
+      {"symbol":"TSLA","type":"price","date":"5/7/2020","value":156.007996},
+      {"symbol":"TSLA","type":"price","date":"5/8/2020","value":163.884003},
+      {"symbol":"TSLA","type":"price","date":"5/11/2020","value":162.257996},
+      {"symbol":"TSLA","type":"price","date":"5/12/2020","value":161.882004},
+      {"symbol":"TSLA","type":"price","date":"5/13/2020","value":158.192001},
+      {"symbol":"TSLA","type":"price","date":"5/14/2020","value":160.666},
+      {"symbol":"TSLA","type":"price","date":"5/15/2020","value":159.834},
+      {"symbol":"TSLA","type":"price","date":"5/18/2020","value":162.725998},
+      {"symbol":"TSLA","type":"price","date":"5/19/2020","value":161.602005},
+      {"symbol":"TSLA","type":"price","date":"5/20/2020","value":163.112},
+      {"symbol":"TSLA","type":"price","date":"5/21/2020","value":165.520004},
+      {"symbol":"TSLA","type":"price","date":"5/22/2020","value":163.376007},
+      {"symbol":"TSLA","type":"price","date":"5/26/2020","value":163.774002},
+      {"symbol":"TSLA","type":"price","date":"5/27/2020","value":164.046005},
+      {"symbol":"TSLA","type":"price","date":"5/28/2020","value":161.162003},
+      {"symbol":"TSLA","type":"price","date":"5/29/2020","value":167.0},
+      {"symbol":"TSLA","type":"price","date":"6/1/2020","value":179.619995},
+      {"symbol":"TSLA","type":"price","date":"6/2/2020","value":176.311996},
+      {"symbol":"TSLA","type":"price","date":"6/3/2020","value":176.591995},
+      {"symbol":"TSLA","type":"price","date":"6/4/2020","value":172.876007},
+      {"symbol":"TSLA","type":"price","date":"6/5/2020","value":177.132004},
+      {"symbol":"TSLA","type":"price","date":"6/8/2020","value":189.983994},
+      {"symbol":"TSLA","type":"price","date":"6/9/2020","value":188.134003},
+      {"symbol":"TSLA","type":"price","date":"6/10/2020","value":205.009995},
+      {"symbol":"TSLA","type":"price","date":"6/11/2020","value":194.567993},
+      {"symbol":"TSLA","type":"price","date":"6/12/2020","value":187.056},
+      {"symbol":"TSLA","type":"price","date":"6/15/2020","value":198.179993},
+      {"symbol":"TSLA","type":"price","date":"6/16/2020","value":196.425995},
+      {"symbol":"TSLA","type":"price","date":"6/17/2020","value":198.358002},
+      {"symbol":"TSLA","type":"price","date":"6/18/2020","value":200.792007},
+      {"symbol":"TSLA","type":"price","date":"6/19/2020","value":200.179993},
+      {"symbol":"TSLA","type":"price","date":"6/22/2020","value":198.863998},
+      {"symbol":"TSLA","type":"price","date":"6/23/2020","value":200.356003},
+      {"symbol":"TSLA","type":"price","date":"6/24/2020","value":192.169998},
+      {"symbol":"TSLA","type":"price","date":"6/25/2020","value":197.195999},
+      {"symbol":"TSLA","type":"price","date":"6/26/2020","value":191.947998},
+      {"symbol":"TSLA","type":"price","date":"6/29/2020","value":201.869995},
+      {"symbol":"TSLA","type":"price","date":"6/30/2020","value":215.962006},
+      {"symbol":"TSLA","type":"price","date":"7/1/2020","value":223.925995},
+      {"symbol":"TSLA","type":"price","date":"7/2/2020","value":241.731995},
+      {"symbol":"TSLA","type":"price","date":"7/6/2020","value":274.31601},
+      {"symbol":"TSLA","type":"price","date":"7/7/2020","value":277.971985},
+      {"symbol":"TSLA","type":"price","date":"7/8/2020","value":273.175995},
+      {"symbol":"TSLA","type":"price","date":"7/9/2020","value":278.855988},
+      {"symbol":"TSLA","type":"price","date":"7/10/2020","value":308.929993},
+      {"symbol":"TSLA","type":"price","date":"7/13/2020","value":299.411987},
+      {"symbol":"TSLA","type":"price","date":"7/14/2020","value":303.359985},
+      {"symbol":"TSLA","type":"price","date":"7/15/2020","value":309.201996},
+      {"symbol":"TSLA","type":"price","date":"7/16/2020","value":300.127991},
+      {"symbol":"TSLA","type":"price","date":"7/17/2020","value":300.167999},
+      {"symbol":"TSLA","type":"price","date":"7/20/2020","value":328.600006},
+      {"symbol":"TSLA","type":"price","date":"7/21/2020","value":313.671997},
+      {"symbol":"TSLA","type":"price","date":"7/22/2020","value":318.466003},
+      {"symbol":"TSLA","type":"price","date":"7/23/2020","value":302.614014},
+      {"symbol":"TSLA","type":"price","date":"7/24/2020","value":283.399994},
+      {"symbol":"TSLA","type":"price","date":"7/27/2020","value":307.920013},
+      {"symbol":"TSLA","type":"price","date":"7/28/2020","value":295.298004},
+      {"symbol":"TSLA","type":"price","date":"7/29/2020","value":299.821991},
+      {"symbol":"TSLA","type":"price","date":"7/30/2020","value":297.497986},
+      {"symbol":"TSLA","type":"price","date":"7/31/2020","value":286.152008},
+      {"symbol":"TSLA","type":"price","date":"8/3/2020","value":297.0},
+      {"symbol":"TSLA","type":"price","date":"8/4/2020","value":297.399994},
+      {"symbol":"TSLA","type":"price","date":"8/5/2020","value":297.003998},
+      {"symbol":"TSLA","type":"price","date":"8/6/2020","value":297.915985},
+      {"symbol":"TSLA","type":"price","date":"8/7/2020","value":290.541992},
+      {"symbol":"TSLA","type":"price","date":"8/10/2020","value":283.713989},
+      {"symbol":"TSLA","type":"price","date":"8/11/2020","value":274.877991},
+      {"symbol":"TSLA","type":"price","date":"8/12/2020","value":310.951996},
+      {"symbol":"TSLA","type":"price","date":"8/13/2020","value":324.200012},
+      {"symbol":"TSLA","type":"price","date":"8/14/2020","value":330.141998},
+      {"symbol":"TSLA","type":"price","date":"8/17/2020","value":367.127991},
+      {"symbol":"TSLA","type":"price","date":"8/18/2020","value":377.417999},
+      {"symbol":"TSLA","type":"price","date":"8/19/2020","value":375.705994},
+      {"symbol":"TSLA","type":"price","date":"8/20/2020","value":400.365997},
+      {"symbol":"TSLA","type":"price","date":"8/21/2020","value":409.996002},
+      {"symbol":"TSLA","type":"price","date":"8/24/2020","value":402.839996},
+      {"symbol":"TSLA","type":"price","date":"8/25/2020","value":404.667999},
+      {"symbol":"TSLA","type":"price","date":"8/26/2020","value":430.634003},
+      {"symbol":"TSLA","type":"price","date":"8/27/2020","value":447.75},
+      {"symbol":"TSLA","type":"price","date":"8/28/2020","value":442.679993},
+      {"symbol":"TSLA","type":"price","date":"8/31/2020","value":498.320007},
+      {"symbol":"TSLA","type":"price","date":"9/1/2020","value":475.049988},
+      {"symbol":"TSLA","type":"price","date":"9/2/2020","value":447.369995},
+      {"symbol":"TSLA","type":"price","date":"9/3/2020","value":407.0},
+      {"symbol":"TSLA","type":"price","date":"9/4/2020","value":418.320007},
+      {"symbol":"TSLA","type":"price","date":"9/8/2020","value":330.209991},
+      {"symbol":"TSLA","type":"price","date":"9/9/2020","value":366.279999},
+      {"symbol":"TSLA","type":"price","date":"9/10/2020","value":371.339996},
+      {"symbol":"TSLA","type":"price","date":"9/11/2020","value":372.720001},
+      {"symbol":"TSLA","type":"price","date":"9/14/2020","value":419.619995},
+      {"symbol":"TSLA","type":"price","date":"9/15/2020","value":449.76001},
+      {"symbol":"TSLA","type":"price","date":"9/16/2020","value":441.76001},
+      {"symbol":"TSLA","type":"price","date":"9/17/2020","value":423.429993},
+      {"symbol":"TSLA","type":"price","date":"9/18/2020","value":442.149994},
+      {"symbol":"TSLA","type":"price","date":"9/21/2020","value":449.390015},
+      {"symbol":"TSLA","type":"price","date":"9/22/2020","value":424.230011},
+      {"symbol":"TSLA","type":"price","date":"9/23/2020","value":380.359985},
+      {"symbol":"TSLA","type":"price","date":"9/24/2020","value":387.790009},
+      {"symbol":"TSLA","type":"price","date":"9/25/2020","value":407.339996},
+      {"symbol":"TSLA","type":"price","date":"9/28/2020","value":421.200012},
+      {"symbol":"TSLA","type":"price","date":"9/29/2020","value":419.070007},
+      {"symbol":"TSLA","type":"price","date":"9/30/2020","value":429.01001},
+      {"symbol":"TSLA","type":"price","date":"10/1/2020","value":448.160004},
+      {"symbol":"TSLA","type":"price","date":"10/2/2020","value":415.089996},
+      {"symbol":"TSLA","type":"price","date":"10/5/2020","value":425.679993},
+      {"symbol":"TSLA","type":"price","date":"10/6/2020","value":413.980011},
+      {"symbol":"TSLA","type":"price","date":"10/7/2020","value":425.299988},
+      {"symbol":"TSLA","type":"price","date":"10/8/2020","value":425.920013},
+      {"symbol":"TSLA","type":"price","date":"10/9/2020","value":434.0},
+      {"symbol":"TSLA","type":"price","date":"10/12/2020","value":442.299988},
+      {"symbol":"TSLA","type":"price","date":"10/13/2020","value":446.649994},
+      {"symbol":"TSLA","type":"price","date":"10/14/2020","value":461.299988},
+      {"symbol":"TSLA","type":"price","date":"10/15/2020","value":448.880005},
+      {"symbol":"TSLA","type":"price","date":"10/16/2020","value":439.670013},
+      {"symbol":"TSLA","type":"price","date":"10/19/2020","value":430.829987},
+      {"symbol":"TSLA","type":"price","date":"10/20/2020","value":421.940002},
+      {"symbol":"TSLA","type":"price","date":"10/21/2020","value":422.640015},
+      {"symbol":"TSLA","type":"price","date":"10/22/2020","value":425.790009},
+      {"symbol":"TSLA","type":"price","date":"10/23/2020","value":420.630005},
+      {"symbol":"TSLA","type":"price","date":"10/26/2020","value":420.279999},
+      {"symbol":"TSLA","type":"price","date":"10/27/2020","value":424.679993},
+      {"symbol":"TSLA","type":"price","date":"10/28/2020","value":406.019989},
+      {"symbol":"TSLA","type":"price","date":"10/29/2020","value":410.829987},
+      {"symbol":"TSLA","type":"price","date":"10/30/2020","value":388.040009},
+      {"symbol":"TSLA","type":"price","date":"11/2/2020","value":400.51001},
+      {"symbol":"TSLA","type":"price","date":"11/3/2020","value":423.899994},
+      {"symbol":"TSLA","type":"price","date":"11/4/2020","value":420.980011},
+      {"symbol":"TSLA","type":"price","date":"11/5/2020","value":438.089996},
+      {"symbol":"TSLA","type":"price","date":"11/6/2020","value":429.950012},
+      {"symbol":"TSLA","type":"price","date":"11/9/2020","value":421.26001},
+      {"symbol":"TSLA","type":"price","date":"11/10/2020","value":410.359985},
+      {"symbol":"TSLA","type":"price","date":"11/11/2020","value":417.130005},
+      {"symbol":"TSLA","type":"price","date":"11/12/2020","value":411.76001},
+      {"symbol":"TSLA","type":"price","date":"11/13/2020","value":408.5},
+      {"symbol":"TSLA","type":"price","date":"11/16/2020","value":408.089996},
+      {"symbol":"TSLA","type":"price","date":"11/17/2020","value":441.609985},
+      {"symbol":"TSLA","type":"price","date":"11/18/2020","value":486.640015},
+      {"symbol":"TSLA","type":"price","date":"11/19/2020","value":499.269989},
+      {"symbol":"TSLA","type":"price","date":"11/20/2020","value":489.609985},
+      {"symbol":"TSLA","type":"price","date":"11/23/2020","value":521.849976},
+      {"symbol":"TSLA","type":"price","date":"11/24/2020","value":555.380005},
+      {"symbol":"TSLA","type":"price","date":"11/25/2020","value":574.0},
+      {"symbol":"TSLA","type":"price","date":"11/27/2020","value":585.76001},
+      {"symbol":"TSLA","type":"price","date":"11/30/2020","value":567.599976},
+      {"symbol":"TSLA","type":"price","date":"12/1/2020","value":584.76001},
+      {"symbol":"TSLA","type":"price","date":"12/2/2020","value":568.820007},
+      {"symbol":"TSLA","type":"price","date":"12/3/2020","value":593.380005},
+      {"symbol":"TSLA","type":"price","date":"12/4/2020","value":599.039978},
+      {"symbol":"TSLA","type":"price","date":"12/7/2020","value":641.76001},
+      {"symbol":"TSLA","type":"price","date":"12/8/2020","value":649.880005},
+      {"symbol":"TSLA","type":"price","date":"12/9/2020","value":604.47998},
+      {"symbol":"TSLA","type":"price","date":"12/10/2020","value":627.070007},
+      {"symbol":"TSLA","type":"price","date":"12/11/2020","value":609.98999},
+      {"symbol":"TSLA","type":"price","date":"12/14/2020","value":639.830017},
+      {"symbol":"TSLA","type":"price","date":"12/15/2020","value":633.25},
+      {"symbol":"TSLA","type":"price","date":"12/16/2020","value":622.77002},
+      {"symbol":"TSLA","type":"price","date":"12/17/2020","value":655.900024},
+      {"symbol":"TSLA","type":"price","date":"12/18/2020","value":695.0},
+      {"symbol":"TSLA","type":"price","date":"12/21/2020","value":649.859985},
+      {"symbol":"TSLA","type":"price","date":"12/22/2020","value":640.340027},
+      {"symbol":"TSLA","type":"price","date":"12/23/2020","value":645.97998},
+      {"symbol":"TSLA","type":"price","date":"12/24/2020","value":661.77002},
+      {"symbol":"TSLA","type":"price","date":"12/28/2020","value":663.690002},
+      {"symbol":"TSLA","type":"price","date":"12/29/2020","value":665.98999},
+      {"symbol":"TSLA","type":"price","date":"12/30/2020","value":694.780029},
+      {"symbol":"TSLA","type":"price","date":"12/31/2020","value":705.669983},
+  ]
+  let TSLAPrice = new Data("TSLA","price",dataTSLAPrice);
+
+  let dataTSLAVolumn = [
+    {"symbol":"TSLA","type":"volumn","date":"12/31/2019","value":51428500},
+    {"symbol":"TSLA","type":"volumn","date":"1/2/2020","value":47660500},
+    {"symbol":"TSLA","type":"volumn","date":"1/3/2020","value":88892500},
+    {"symbol":"TSLA","type":"volumn","date":"1/6/2020","value":50665000},
+    {"symbol":"TSLA","type":"volumn","date":"1/7/2020","value":89410500},
+    {"symbol":"TSLA","type":"volumn","date":"1/8/2020","value":155721500},
+    {"symbol":"TSLA","type":"volumn","date":"1/9/2020","value":142202000},
+    {"symbol":"TSLA","type":"volumn","date":"1/10/2020","value":64797500},
+    {"symbol":"TSLA","type":"volumn","date":"1/13/2020","value":132588000},
+    {"symbol":"TSLA","type":"volumn","date":"1/14/2020","value":144981000},
+    {"symbol":"TSLA","type":"volumn","date":"1/15/2020","value":86844000},
+    {"symbol":"TSLA","type":"volumn","date":"1/16/2020","value":108683500},
+    {"symbol":"TSLA","type":"volumn","date":"1/17/2020","value":68145500},
+    {"symbol":"TSLA","type":"volumn","date":"1/21/2020","value":89017500},
+    {"symbol":"TSLA","type":"volumn","date":"1/22/2020","value":156845000},
+    {"symbol":"TSLA","type":"volumn","date":"1/23/2020","value":98255000},
+    {"symbol":"TSLA","type":"volumn","date":"1/24/2020","value":71768000},
+    {"symbol":"TSLA","type":"volumn","date":"1/27/2020","value":68040500},
+    {"symbol":"TSLA","type":"volumn","date":"1/28/2020","value":58942500},
+    {"symbol":"TSLA","type":"volumn","date":"1/29/2020","value":89007500},
+    {"symbol":"TSLA","type":"volumn","date":"1/30/2020","value":145028500},
+    {"symbol":"TSLA","type":"volumn","date":"1/31/2020","value":78596500},
+    {"symbol":"TSLA","type":"volumn","date":"2/3/2020","value":236167500},
+    {"symbol":"TSLA","type":"volumn","date":"2/4/2020","value":304694000},
+    {"symbol":"TSLA","type":"volumn","date":"2/5/2020","value":242119000},
+    {"symbol":"TSLA","type":"volumn","date":"2/6/2020","value":199404000},
+    {"symbol":"TSLA","type":"volumn","date":"2/7/2020","value":85317500},
+    {"symbol":"TSLA","type":"volumn","date":"2/10/2020","value":123446000},
+    {"symbol":"TSLA","type":"volumn","date":"2/11/2020","value":58487500},
+    {"symbol":"TSLA","type":"volumn","date":"2/12/2020","value":60112500},
+    {"symbol":"TSLA","type":"volumn","date":"2/13/2020","value":131446500},
+    {"symbol":"TSLA","type":"volumn","date":"2/14/2020","value":78468500},
+    {"symbol":"TSLA","type":"volumn","date":"2/18/2020","value":81908500},
+    {"symbol":"TSLA","type":"volumn","date":"2/19/2020","value":127115000},
+    {"symbol":"TSLA","type":"volumn","date":"2/20/2020","value":88174500},
+    {"symbol":"TSLA","type":"volumn","date":"2/21/2020","value":71574000},
+    {"symbol":"TSLA","type":"volumn","date":"2/24/2020","value":75961000},
+    {"symbol":"TSLA","type":"volumn","date":"2/25/2020","value":86452500},
+    {"symbol":"TSLA","type":"volumn","date":"2/26/2020","value":70427500},
+    {"symbol":"TSLA","type":"volumn","date":"2/27/2020","value":121386000},
+    {"symbol":"TSLA","type":"volumn","date":"2/28/2020","value":122821000},
+    {"symbol":"TSLA","type":"volumn","date":"3/2/2020","value":100975000},
+    {"symbol":"TSLA","type":"volumn","date":"3/3/2020","value":128920000},
+    {"symbol":"TSLA","type":"volumn","date":"3/4/2020","value":75245000},
+    {"symbol":"TSLA","type":"volumn","date":"3/5/2020","value":54263500},
+    {"symbol":"TSLA","type":"volumn","date":"3/6/2020","value":63314500},
+    {"symbol":"TSLA","type":"volumn","date":"3/9/2020","value":85368500},
+    {"symbol":"TSLA","type":"volumn","date":"3/10/2020","value":77972000},
+    {"symbol":"TSLA","type":"volumn","date":"3/11/2020","value":66612500},
+    {"symbol":"TSLA","type":"volumn","date":"3/12/2020","value":94545500},
+    {"symbol":"TSLA","type":"volumn","date":"3/13/2020","value":113201500},
+    {"symbol":"TSLA","type":"volumn","date":"3/16/2020","value":102447500},
+    {"symbol":"TSLA","type":"volumn","date":"3/17/2020","value":119973000},
+    {"symbol":"TSLA","type":"volumn","date":"3/18/2020","value":118931000},
+    {"symbol":"TSLA","type":"volumn","date":"3/19/2020","value":150977500},
+    {"symbol":"TSLA","type":"volumn","date":"3/20/2020","value":141427500},
+    {"symbol":"TSLA","type":"volumn","date":"3/23/2020","value":82272500},
+    {"symbol":"TSLA","type":"volumn","date":"3/24/2020","value":114476000},
+    {"symbol":"TSLA","type":"volumn","date":"3/25/2020","value":106113500},
+    {"symbol":"TSLA","type":"volumn","date":"3/26/2020","value":86903500},
+    {"symbol":"TSLA","type":"volumn","date":"3/27/2020","value":71887000},
+    {"symbol":"TSLA","type":"volumn","date":"3/30/2020","value":59990500},
+    {"symbol":"TSLA","type":"volumn","date":"3/31/2020","value":88857500},
+    {"symbol":"TSLA","type":"volumn","date":"4/1/2020","value":66766000},
+    {"symbol":"TSLA","type":"volumn","date":"4/2/2020","value":99292000},
+    {"symbol":"TSLA","type":"volumn","date":"4/3/2020","value":112810500},
+    {"symbol":"TSLA","type":"volumn","date":"4/6/2020","value":74509000},
+    {"symbol":"TSLA","type":"volumn","date":"4/7/2020","value":89599000},
+    {"symbol":"TSLA","type":"volumn","date":"4/8/2020","value":63280000},
+    {"symbol":"TSLA","type":"volumn","date":"4/9/2020","value":68250000},
+    {"symbol":"TSLA","type":"volumn","date":"4/13/2020","value":112377000},
+    {"symbol":"TSLA","type":"volumn","date":"4/14/2020","value":152882500},
+    {"symbol":"TSLA","type":"volumn","date":"4/15/2020","value":117885000},
+    {"symbol":"TSLA","type":"volumn","date":"4/16/2020","value":103289500},
+    {"symbol":"TSLA","type":"volumn","date":"4/17/2020","value":65641000},
+    {"symbol":"TSLA","type":"volumn","date":"4/20/2020","value":73733000},
+    {"symbol":"TSLA","type":"volumn","date":"4/21/2020","value":101045500},
+    {"symbol":"TSLA","type":"volumn","date":"4/22/2020","value":71124000},
+    {"symbol":"TSLA","type":"volumn","date":"4/23/2020","value":66183500},
+    {"symbol":"TSLA","type":"volumn","date":"4/24/2020","value":66188000},
+    {"symbol":"TSLA","type":"volumn","date":"4/27/2020","value":103407000},
+    {"symbol":"TSLA","type":"volumn","date":"4/28/2020","value":76110000},
+    {"symbol":"TSLA","type":"volumn","date":"4/29/2020","value":81080000},
+    {"symbol":"TSLA","type":"volumn","date":"4/30/2020","value":142359500},
+    {"symbol":"TSLA","type":"volumn","date":"5/1/2020","value":162659000},
+    {"symbol":"TSLA","type":"volumn","date":"5/4/2020","value":96185500},
+    {"symbol":"TSLA","type":"volumn","date":"5/5/2020","value":84958500},
+    {"symbol":"TSLA","type":"volumn","date":"5/6/2020","value":55616000},
+    {"symbol":"TSLA","type":"volumn","date":"5/7/2020","value":57638500},
+    {"symbol":"TSLA","type":"volumn","date":"5/8/2020","value":80650500},
+    {"symbol":"TSLA","type":"volumn","date":"5/11/2020","value":82598000},
+    {"symbol":"TSLA","type":"volumn","date":"5/12/2020","value":79534500},
+    {"symbol":"TSLA","type":"volumn","date":"5/13/2020","value":95327500},
+    {"symbol":"TSLA","type":"volumn","date":"5/14/2020","value":68411000},
+    {"symbol":"TSLA","type":"volumn","date":"5/15/2020","value":52592000},
+    {"symbol":"TSLA","type":"volumn","date":"5/18/2020","value":58490500},
+    {"symbol":"TSLA","type":"volumn","date":"5/19/2020","value":48182500},
+    {"symbol":"TSLA","type":"volumn","date":"5/20/2020","value":36546500},
+    {"symbol":"TSLA","type":"volumn","date":"5/21/2020","value":61273000},
+    {"symbol":"TSLA","type":"volumn","date":"5/22/2020","value":49937500},
+    {"symbol":"TSLA","type":"volumn","date":"5/26/2020","value":40448500},
+    {"symbol":"TSLA","type":"volumn","date":"5/27/2020","value":57747500},
+    {"symbol":"TSLA","type":"volumn","date":"5/28/2020","value":36278000},
+    {"symbol":"TSLA","type":"volumn","date":"5/29/2020","value":59062500},
+    {"symbol":"TSLA","type":"volumn","date":"6/1/2020","value":74697500},
+    {"symbol":"TSLA","type":"volumn","date":"6/2/2020","value":67828000},
+    {"symbol":"TSLA","type":"volumn","date":"6/3/2020","value":39747500},
+    {"symbol":"TSLA","type":"volumn","date":"6/4/2020","value":44438500},
+    {"symbol":"TSLA","type":"volumn","date":"6/5/2020","value":39059500},
+    {"symbol":"TSLA","type":"volumn","date":"6/8/2020","value":70873500},
+    {"symbol":"TSLA","type":"volumn","date":"6/9/2020","value":56941000},
+    {"symbol":"TSLA","type":"volumn","date":"6/10/2020","value":92817000},
+    {"symbol":"TSLA","type":"volumn","date":"6/11/2020","value":79582500},
+    {"symbol":"TSLA","type":"volumn","date":"6/12/2020","value":83817000},
+    {"symbol":"TSLA","type":"volumn","date":"6/15/2020","value":78486000},
+    {"symbol":"TSLA","type":"volumn","date":"6/16/2020","value":70255500},
+    {"symbol":"TSLA","type":"volumn","date":"6/17/2020","value":49454000},
+    {"symbol":"TSLA","type":"volumn","date":"6/18/2020","value":48759500},
+    {"symbol":"TSLA","type":"volumn","date":"6/19/2020","value":43398500},
+    {"symbol":"TSLA","type":"volumn","date":"6/22/2020","value":31812000},
+    {"symbol":"TSLA","type":"volumn","date":"6/23/2020","value":31826500},
+    {"symbol":"TSLA","type":"volumn","date":"6/24/2020","value":54798000},
+    {"symbol":"TSLA","type":"volumn","date":"6/25/2020","value":46272500},
+    {"symbol":"TSLA","type":"volumn","date":"6/26/2020","value":44274500},
+    {"symbol":"TSLA","type":"volumn","date":"6/29/2020","value":45132000},
+    {"symbol":"TSLA","type":"volumn","date":"6/30/2020","value":84592500},
+    {"symbol":"TSLA","type":"volumn","date":"7/1/2020","value":66634500},
+    {"symbol":"TSLA","type":"volumn","date":"7/2/2020","value":86250500},
+    {"symbol":"TSLA","type":"volumn","date":"7/6/2020","value":102849500},
+    {"symbol":"TSLA","type":"volumn","date":"7/7/2020","value":107448500},
+    {"symbol":"TSLA","type":"volumn","date":"7/8/2020","value":81556500},
+    {"symbol":"TSLA","type":"volumn","date":"7/9/2020","value":58588000},
+    {"symbol":"TSLA","type":"volumn","date":"7/10/2020","value":116688000},
+    {"symbol":"TSLA","type":"volumn","date":"7/13/2020","value":194927000},
+    {"symbol":"TSLA","type":"volumn","date":"7/14/2020","value":117090500},
+    {"symbol":"TSLA","type":"volumn","date":"7/15/2020","value":81839000},
+    {"symbol":"TSLA","type":"volumn","date":"7/16/2020","value":71504000},
+    {"symbol":"TSLA","type":"volumn","date":"7/17/2020","value":46650000},
+    {"symbol":"TSLA","type":"volumn","date":"7/20/2020","value":85607000},
+    {"symbol":"TSLA","type":"volumn","date":"7/21/2020","value":80786500},
+    {"symbol":"TSLA","type":"volumn","date":"7/22/2020","value":70805500},
+    {"symbol":"TSLA","type":"volumn","date":"7/23/2020","value":121642500},
+    {"symbol":"TSLA","type":"volumn","date":"7/24/2020","value":96983000},
+    {"symbol":"TSLA","type":"volumn","date":"7/27/2020","value":80243500},
+    {"symbol":"TSLA","type":"volumn","date":"7/28/2020","value":79043500},
+    {"symbol":"TSLA","type":"volumn","date":"7/29/2020","value":47134500},
+    {"symbol":"TSLA","type":"volumn","date":"7/30/2020","value":38105000},
+    {"symbol":"TSLA","type":"volumn","date":"7/31/2020","value":61235000},
+    {"symbol":"TSLA","type":"volumn","date":"8/3/2020","value":44046500},
+    {"symbol":"TSLA","type":"volumn","date":"8/4/2020","value":42075000},
+    {"symbol":"TSLA","type":"volumn","date":"8/5/2020","value":24890000},
+    {"symbol":"TSLA","type":"volumn","date":"8/6/2020","value":29961500},
+    {"symbol":"TSLA","type":"volumn","date":"8/7/2020","value":44482000},
+    {"symbol":"TSLA","type":"volumn","date":"8/10/2020","value":37611500},
+    {"symbol":"TSLA","type":"volumn","date":"8/11/2020","value":43129000},
+    {"symbol":"TSLA","type":"volumn","date":"8/12/2020","value":109494000},
+    {"symbol":"TSLA","type":"volumn","date":"8/13/2020","value":102126500},
+    {"symbol":"TSLA","type":"volumn","date":"8/14/2020","value":62888000},
+    {"symbol":"TSLA","type":"volumn","date":"8/17/2020","value":101211500},
+    {"symbol":"TSLA","type":"volumn","date":"8/18/2020","value":82372500},
+    {"symbol":"TSLA","type":"volumn","date":"8/19/2020","value":61026500},
+    {"symbol":"TSLA","type":"volumn","date":"8/20/2020","value":103059000},
+    {"symbol":"TSLA","type":"volumn","date":"8/21/2020","value":107448000},
+    {"symbol":"TSLA","type":"volumn","date":"8/24/2020","value":100318000},
+    {"symbol":"TSLA","type":"volumn","date":"8/25/2020","value":53294500},
+    {"symbol":"TSLA","type":"volumn","date":"8/26/2020","value":71197000},
+    {"symbol":"TSLA","type":"volumn","date":"8/27/2020","value":118465000},
+    {"symbol":"TSLA","type":"volumn","date":"8/28/2020","value":100406000},
+    {"symbol":"TSLA","type":"volumn","date":"8/31/2020","value":118374400},
+    {"symbol":"TSLA","type":"volumn","date":"9/1/2020","value":90119400},
+    {"symbol":"TSLA","type":"volumn","date":"9/2/2020","value":96176100},
+    {"symbol":"TSLA","type":"volumn","date":"9/3/2020","value":87596100},
+    {"symbol":"TSLA","type":"volumn","date":"9/4/2020","value":110321900},
+    {"symbol":"TSLA","type":"volumn","date":"9/8/2020","value":115465700},
+    {"symbol":"TSLA","type":"volumn","date":"9/9/2020","value":79465800},
+    {"symbol":"TSLA","type":"volumn","date":"9/10/2020","value":84930600},
+    {"symbol":"TSLA","type":"volumn","date":"9/11/2020","value":60717500},
+    {"symbol":"TSLA","type":"volumn","date":"9/14/2020","value":83020600},
+    {"symbol":"TSLA","type":"volumn","date":"9/15/2020","value":97298200},
+    {"symbol":"TSLA","type":"volumn","date":"9/16/2020","value":72279300},
+    {"symbol":"TSLA","type":"volumn","date":"9/17/2020","value":76779200},
+    {"symbol":"TSLA","type":"volumn","date":"9/18/2020","value":86406800},
+    {"symbol":"TSLA","type":"volumn","date":"9/21/2020","value":109476800},
+    {"symbol":"TSLA","type":"volumn","date":"9/22/2020","value":79580800},
+    {"symbol":"TSLA","type":"volumn","date":"9/23/2020","value":95074200},
+    {"symbol":"TSLA","type":"volumn","date":"9/24/2020","value":96561100},
+    {"symbol":"TSLA","type":"volumn","date":"9/25/2020","value":67208500},
+    {"symbol":"TSLA","type":"volumn","date":"9/28/2020","value":49719600},
+    {"symbol":"TSLA","type":"volumn","date":"9/29/2020","value":50219300},
+    {"symbol":"TSLA","type":"volumn","date":"9/30/2020","value":48145600},
+    {"symbol":"TSLA","type":"volumn","date":"10/1/2020","value":50741500},
+    {"symbol":"TSLA","type":"volumn","date":"10/2/2020","value":71430000},
+    {"symbol":"TSLA","type":"volumn","date":"10/5/2020","value":44722800},
+    {"symbol":"TSLA","type":"volumn","date":"10/6/2020","value":49146300},
+    {"symbol":"TSLA","type":"volumn","date":"10/7/2020","value":43127700},
+    {"symbol":"TSLA","type":"volumn","date":"10/8/2020","value":40421100},
+    {"symbol":"TSLA","type":"volumn","date":"10/9/2020","value":28925700},
+    {"symbol":"TSLA","type":"volumn","date":"10/12/2020","value":38791100},
+    {"symbol":"TSLA","type":"volumn","date":"10/13/2020","value":34463700},
+    {"symbol":"TSLA","type":"volumn","date":"10/14/2020","value":48045400},
+    {"symbol":"TSLA","type":"volumn","date":"10/15/2020","value":35672400},
+    {"symbol":"TSLA","type":"volumn","date":"10/16/2020","value":32775900},
+    {"symbol":"TSLA","type":"volumn","date":"10/19/2020","value":36287800},
+    {"symbol":"TSLA","type":"volumn","date":"10/20/2020","value":31656300},
+    {"symbol":"TSLA","type":"volumn","date":"10/21/2020","value":32370500},
+    {"symbol":"TSLA","type":"volumn","date":"10/22/2020","value":39993200},
+    {"symbol":"TSLA","type":"volumn","date":"10/23/2020","value":33717000},
+    {"symbol":"TSLA","type":"volumn","date":"10/26/2020","value":28239200},
+    {"symbol":"TSLA","type":"volumn","date":"10/27/2020","value":22686500},
+    {"symbol":"TSLA","type":"volumn","date":"10/28/2020","value":25451400},
+    {"symbol":"TSLA","type":"volumn","date":"10/29/2020","value":22655300},
+    {"symbol":"TSLA","type":"volumn","date":"10/30/2020","value":42511300},
+    {"symbol":"TSLA","type":"volumn","date":"11/2/2020","value":29021100},
+    {"symbol":"TSLA","type":"volumn","date":"11/3/2020","value":34351700},
+    {"symbol":"TSLA","type":"volumn","date":"11/4/2020","value":32143100},
+    {"symbol":"TSLA","type":"volumn","date":"11/5/2020","value":28414500},
+    {"symbol":"TSLA","type":"volumn","date":"11/6/2020","value":21706000},
+    {"symbol":"TSLA","type":"volumn","date":"11/9/2020","value":34833000},
+    {"symbol":"TSLA","type":"volumn","date":"11/10/2020","value":30284200},
+    {"symbol":"TSLA","type":"volumn","date":"11/11/2020","value":17357700},
+    {"symbol":"TSLA","type":"volumn","date":"11/12/2020","value":19855100},
+    {"symbol":"TSLA","type":"volumn","date":"11/13/2020","value":19771100},
+    {"symbol":"TSLA","type":"volumn","date":"11/16/2020","value":26838600},
+    {"symbol":"TSLA","type":"volumn","date":"11/17/2020","value":61188300},
+    {"symbol":"TSLA","type":"volumn","date":"11/18/2020","value":78044000},
+    {"symbol":"TSLA","type":"volumn","date":"11/19/2020","value":62475300},
+    {"symbol":"TSLA","type":"volumn","date":"11/20/2020","value":32911900},
+    {"symbol":"TSLA","type":"volumn","date":"11/23/2020","value":50260300},
+    {"symbol":"TSLA","type":"volumn","date":"11/24/2020","value":53648500},
+    {"symbol":"TSLA","type":"volumn","date":"11/25/2020","value":48930200},
+    {"symbol":"TSLA","type":"volumn","date":"11/27/2020","value":37561100},
+    {"symbol":"TSLA","type":"volumn","date":"11/30/2020","value":63003100},
+    {"symbol":"TSLA","type":"volumn","date":"12/1/2020","value":40382800},
+    {"symbol":"TSLA","type":"volumn","date":"12/2/2020","value":47775700},
+    {"symbol":"TSLA","type":"volumn","date":"12/3/2020","value":42552000},
+    {"symbol":"TSLA","type":"volumn","date":"12/4/2020","value":29401300},
+    {"symbol":"TSLA","type":"volumn","date":"12/7/2020","value":56309700},
+    {"symbol":"TSLA","type":"volumn","date":"12/8/2020","value":64265000},
+    {"symbol":"TSLA","type":"volumn","date":"12/9/2020","value":71291200},
+    {"symbol":"TSLA","type":"volumn","date":"12/10/2020","value":67083200},
+    {"symbol":"TSLA","type":"volumn","date":"12/11/2020","value":46475000},
+    {"symbol":"TSLA","type":"volumn","date":"12/14/2020","value":52040600},
+    {"symbol":"TSLA","type":"volumn","date":"12/15/2020","value":45223600},
+    {"symbol":"TSLA","type":"volumn","date":"12/16/2020","value":42095800},
+    {"symbol":"TSLA","type":"volumn","date":"12/17/2020","value":56270100},
+    {"symbol":"TSLA","type":"volumn","date":"12/18/2020","value":222126200},
+    {"symbol":"TSLA","type":"volumn","date":"12/21/2020","value":58045300},
+    {"symbol":"TSLA","type":"volumn","date":"12/22/2020","value":51716000},
+    {"symbol":"TSLA","type":"volumn","date":"12/23/2020","value":33173000},
+    {"symbol":"TSLA","type":"volumn","date":"12/24/2020","value":22865600},
+    {"symbol":"TSLA","type":"volumn","date":"12/28/2020","value":32278600},
+    {"symbol":"TSLA","type":"volumn","date":"12/29/2020","value":22910800},
+    {"symbol":"TSLA","type":"volumn","date":"12/30/2020","value":42846000},
+    {"symbol":"TSLA","type":"volumn","date":"12/31/2020","value":49649900},
+  ]
+  let TSLAVolumn = new Data("TSLA","volumn",dataTSLAVolumn);
+
+  let dataFPrice = [
+    {"symbol":"F","type":"price","date":"12/31/2019","value":9.144482},
+    {"symbol":"F","type":"price","date":"1/2/2020","value":9.262475},
+    {"symbol":"F","type":"price","date":"1/3/2020","value":9.055987},
+    {"symbol":"F","type":"price","date":"1/6/2020","value":9.006823},
+    {"symbol":"F","type":"price","date":"1/7/2020","value":9.095318},
+    {"symbol":"F","type":"price","date":"1/8/2020","value":9.095318},
+    {"symbol":"F","type":"price","date":"1/9/2020","value":9.105151},
+    {"symbol":"F","type":"price","date":"1/10/2020","value":9.095318},
+    {"symbol":"F","type":"price","date":"1/13/2020","value":9.085485},
+    {"symbol":"F","type":"price","date":"1/14/2020","value":9.134649},
+    {"symbol":"F","type":"price","date":"1/15/2020","value":9.036321},
+    {"symbol":"F","type":"price","date":"1/16/2020","value":9.016656},
+    {"symbol":"F","type":"price","date":"1/17/2020","value":9.006823},
+    {"symbol":"F","type":"price","date":"1/21/2020","value":9.055987},
+    {"symbol":"F","type":"price","date":"1/22/2020","value":9.006823},
+    {"symbol":"F","type":"price","date":"1/23/2020","value":8.987158},
+    {"symbol":"F","type":"price","date":"1/24/2020","value":8.849499},
+    {"symbol":"F","type":"price","date":"1/27/2020","value":8.741339},
+    {"symbol":"F","type":"price","date":"1/28/2020","value":8.820001},
+    {"symbol":"F","type":"price","date":"1/29/2020","value":8.86},
+    {"symbol":"F","type":"price","date":"1/30/2020","value":8.84},
+    {"symbol":"F","type":"price","date":"1/31/2020","value":8.82},
+    {"symbol":"F","type":"price","date":"2/3/2020","value":8.98},
+    {"symbol":"F","type":"price","date":"2/4/2020","value":9.18},
+    {"symbol":"F","type":"price","date":"2/5/2020","value":8.31},
+    {"symbol":"F","type":"price","date":"2/6/2020","value":8.25},
+    {"symbol":"F","type":"price","date":"2/7/2020","value":8.11},
+    {"symbol":"F","type":"price","date":"2/10/2020","value":8.06},
+    {"symbol":"F","type":"price","date":"2/11/2020","value":8.1},
+    {"symbol":"F","type":"price","date":"2/12/2020","value":8.24},
+    {"symbol":"F","type":"price","date":"2/13/2020","value":8.25},
+    {"symbol":"F","type":"price","date":"2/14/2020","value":8.1},
+    {"symbol":"F","type":"price","date":"2/18/2020","value":8.06},
+    {"symbol":"F","type":"price","date":"2/19/2020","value":8.0},
+    {"symbol":"F","type":"price","date":"2/20/2020","value":8.03},
+    {"symbol":"F","type":"price","date":"2/21/2020","value":7.89},
+    {"symbol":"F","type":"price","date":"2/24/2020","value":7.57},
+    {"symbol":"F","type":"price","date":"2/25/2020","value":7.23},
+    {"symbol":"F","type":"price","date":"2/26/2020","value":7.21},
+    {"symbol":"F","type":"price","date":"2/27/2020","value":6.97},
+    {"symbol":"F","type":"price","date":"2/28/2020","value":6.96},
+    {"symbol":"F","type":"price","date":"3/2/2020","value":7.2},
+    {"symbol":"F","type":"price","date":"3/3/2020","value":6.97},
+    {"symbol":"F","type":"price","date":"3/4/2020","value":7.08},
+    {"symbol":"F","type":"price","date":"3/5/2020","value":6.74},
+    {"symbol":"F","type":"price","date":"3/6/2020","value":6.49},
+    {"symbol":"F","type":"price","date":"3/9/2020","value":5.9},
+    {"symbol":"F","type":"price","date":"3/10/2020","value":6.26},
+    {"symbol":"F","type":"price","date":"3/11/2020","value":5.9},
+    {"symbol":"F","type":"price","date":"3/12/2020","value":5.35},
+    {"symbol":"F","type":"price","date":"3/13/2020","value":5.63},
+    {"symbol":"F","type":"price","date":"3/16/2020","value":5.01},
+    {"symbol":"F","type":"price","date":"3/17/2020","value":5.01},
+    {"symbol":"F","type":"price","date":"3/18/2020","value":4.5},
+    {"symbol":"F","type":"price","date":"3/19/2020","value":4.47},
+    {"symbol":"F","type":"price","date":"3/20/2020","value":4.33},
+    {"symbol":"F","type":"price","date":"3/23/2020","value":4.01},
+    {"symbol":"F","type":"price","date":"3/24/2020","value":4.95},
+    {"symbol":"F","type":"price","date":"3/25/2020","value":5.39},
+    {"symbol":"F","type":"price","date":"3/26/2020","value":5.25},
+    {"symbol":"F","type":"price","date":"3/27/2020","value":5.19},
+    {"symbol":"F","type":"price","date":"3/30/2020","value":5.03},
+    {"symbol":"F","type":"price","date":"3/31/2020","value":4.83},
+    {"symbol":"F","type":"price","date":"4/1/2020","value":4.4},
+    {"symbol":"F","type":"price","date":"4/2/2020","value":4.36},
+    {"symbol":"F","type":"price","date":"4/3/2020","value":4.24},
+    {"symbol":"F","type":"price","date":"4/6/2020","value":4.53},
+    {"symbol":"F","type":"price","date":"4/7/2020","value":4.71},
+    {"symbol":"F","type":"price","date":"4/8/2020","value":5.03},
+    {"symbol":"F","type":"price","date":"4/9/2020","value":5.37},
+    {"symbol":"F","type":"price","date":"4/13/2020","value":5.16},
+    {"symbol":"F","type":"price","date":"4/14/2020","value":5.29},
+    {"symbol":"F","type":"price","date":"4/15/2020","value":5.03},
+    {"symbol":"F","type":"price","date":"4/16/2020","value":4.94},
+    {"symbol":"F","type":"price","date":"4/17/2020","value":5.12},
+    {"symbol":"F","type":"price","date":"4/20/2020","value":4.98},
+    {"symbol":"F","type":"price","date":"4/21/2020","value":4.77},
+    {"symbol":"F","type":"price","date":"4/22/2020","value":4.77},
+    {"symbol":"F","type":"price","date":"4/23/2020","value":4.89},
+    {"symbol":"F","type":"price","date":"4/24/2020","value":4.87},
+    {"symbol":"F","type":"price","date":"4/27/2020","value":5.17},
+    {"symbol":"F","type":"price","date":"4/28/2020","value":5.38},
+    {"symbol":"F","type":"price","date":"4/29/2020","value":5.26},
+    {"symbol":"F","type":"price","date":"4/30/2020","value":5.09},
+    {"symbol":"F","type":"price","date":"5/1/2020","value":4.92},
+    {"symbol":"F","type":"price","date":"5/4/2020","value":4.86},
+    {"symbol":"F","type":"price","date":"5/5/2020","value":4.97},
+    {"symbol":"F","type":"price","date":"5/6/2020","value":4.87},
+    {"symbol":"F","type":"price","date":"5/7/2020","value":4.87},
+    {"symbol":"F","type":"price","date":"5/8/2020","value":5.24},
+    {"symbol":"F","type":"price","date":"5/11/2020","value":5.12},
+    {"symbol":"F","type":"price","date":"5/12/2020","value":4.98},
+    {"symbol":"F","type":"price","date":"5/13/2020","value":4.72},
+    {"symbol":"F","type":"price","date":"5/14/2020","value":4.89},
+    {"symbol":"F","type":"price","date":"5/15/2020","value":4.9},
+    {"symbol":"F","type":"price","date":"5/18/2020","value":5.31},
+    {"symbol":"F","type":"price","date":"5/19/2020","value":5.3},
+    {"symbol":"F","type":"price","date":"5/20/2020","value":5.49},
+    {"symbol":"F","type":"price","date":"5/21/2020","value":5.63},
+    {"symbol":"F","type":"price","date":"5/22/2020","value":5.65},
+    {"symbol":"F","type":"price","date":"5/26/2020","value":5.84},
+    {"symbol":"F","type":"price","date":"5/27/2020","value":6.03},
+    {"symbol":"F","type":"price","date":"5/28/2020","value":5.85},
+    {"symbol":"F","type":"price","date":"5/29/2020","value":5.71},
+    {"symbol":"F","type":"price","date":"6/1/2020","value":5.87},
+    {"symbol":"F","type":"price","date":"6/2/2020","value":5.9},
+    {"symbol":"F","type":"price","date":"6/3/2020","value":6.19},
+    {"symbol":"F","type":"price","date":"6/4/2020","value":6.57},
+    {"symbol":"F","type":"price","date":"6/5/2020","value":7.34},
+    {"symbol":"F","type":"price","date":"6/8/2020","value":7.53},
+    {"symbol":"F","type":"price","date":"6/9/2020","value":7.24},
+    {"symbol":"F","type":"price","date":"6/10/2020","value":6.81},
+    {"symbol":"F","type":"price","date":"6/11/2020","value":6.13},
+    {"symbol":"F","type":"price","date":"6/12/2020","value":6.46},
+    {"symbol":"F","type":"price","date":"6/15/2020","value":6.5},
+    {"symbol":"F","type":"price","date":"6/16/2020","value":6.55},
+    {"symbol":"F","type":"price","date":"6/17/2020","value":6.33},
+    {"symbol":"F","type":"price","date":"6/18/2020","value":6.33},
+    {"symbol":"F","type":"price","date":"6/19/2020","value":6.23},
+    {"symbol":"F","type":"price","date":"6/22/2020","value":6.28},
+    {"symbol":"F","type":"price","date":"6/23/2020","value":6.15},
+    {"symbol":"F","type":"price","date":"6/24/2020","value":5.95},
+    {"symbol":"F","type":"price","date":"6/25/2020","value":6.03},
+    {"symbol":"F","type":"price","date":"6/26/2020","value":5.91},
+    {"symbol":"F","type":"price","date":"6/29/2020","value":6.01},
+    {"symbol":"F","type":"price","date":"6/30/2020","value":6.08},
+    {"symbol":"F","type":"price","date":"7/1/2020","value":5.98},
+    {"symbol":"F","type":"price","date":"7/2/2020","value":6.05},
+    {"symbol":"F","type":"price","date":"7/6/2020","value":6.19},
+    {"symbol":"F","type":"price","date":"7/7/2020","value":6.12},
+    {"symbol":"F","type":"price","date":"7/8/2020","value":6.09},
+    {"symbol":"F","type":"price","date":"7/9/2020","value":5.84},
+    {"symbol":"F","type":"price","date":"7/10/2020","value":6.1},
+    {"symbol":"F","type":"price","date":"7/13/2020","value":6.06},
+    {"symbol":"F","type":"price","date":"7/14/2020","value":6.36},
+    {"symbol":"F","type":"price","date":"7/15/2020","value":6.74},
+    {"symbol":"F","type":"price","date":"7/16/2020","value":6.86},
+    {"symbol":"F","type":"price","date":"7/17/2020","value":6.8},
+    {"symbol":"F","type":"price","date":"7/20/2020","value":6.66},
+    {"symbol":"F","type":"price","date":"7/21/2020","value":6.68},
+    {"symbol":"F","type":"price","date":"7/22/2020","value":6.84},
+    {"symbol":"F","type":"price","date":"7/23/2020","value":6.98},
+    {"symbol":"F","type":"price","date":"7/24/2020","value":6.88},
+    {"symbol":"F","type":"price","date":"7/27/2020","value":6.93},
+    {"symbol":"F","type":"price","date":"7/28/2020","value":7.01},
+    {"symbol":"F","type":"price","date":"7/29/2020","value":6.92},
+    {"symbol":"F","type":"price","date":"7/30/2020","value":6.74},
+    {"symbol":"F","type":"price","date":"7/31/2020","value":6.61},
+    {"symbol":"F","type":"price","date":"8/3/2020","value":6.69},
+    {"symbol":"F","type":"price","date":"8/4/2020","value":6.86},
+    {"symbol":"F","type":"price","date":"8/5/2020","value":6.96},
+    {"symbol":"F","type":"price","date":"8/6/2020","value":6.93},
+    {"symbol":"F","type":"price","date":"8/7/2020","value":6.86},
+    {"symbol":"F","type":"price","date":"8/10/2020","value":7.09},
+    {"symbol":"F","type":"price","date":"8/11/2020","value":7.23},
+    {"symbol":"F","type":"price","date":"8/12/2020","value":7.11},
+    {"symbol":"F","type":"price","date":"8/13/2020","value":7.03},
+    {"symbol":"F","type":"price","date":"8/14/2020","value":7.04},
+    {"symbol":"F","type":"price","date":"8/17/2020","value":6.98},
+    {"symbol":"F","type":"price","date":"8/18/2020","value":6.89},
+    {"symbol":"F","type":"price","date":"8/19/2020","value":6.87},
+    {"symbol":"F","type":"price","date":"8/20/2020","value":6.84},
+    {"symbol":"F","type":"price","date":"8/21/2020","value":6.66},
+    {"symbol":"F","type":"price","date":"8/24/2020","value":6.98},
+    {"symbol":"F","type":"price","date":"8/25/2020","value":6.94},
+    {"symbol":"F","type":"price","date":"8/26/2020","value":6.82},
+    {"symbol":"F","type":"price","date":"8/27/2020","value":6.91},
+    {"symbol":"F","type":"price","date":"8/28/2020","value":6.94},
+    {"symbol":"F","type":"price","date":"8/31/2020","value":6.82},
+    {"symbol":"F","type":"price","date":"9/1/2020","value":6.83},
+    {"symbol":"F","type":"price","date":"9/2/2020","value":6.95},
+    {"symbol":"F","type":"price","date":"9/3/2020","value":6.82},
+    {"symbol":"F","type":"price","date":"9/4/2020","value":6.9},
+    {"symbol":"F","type":"price","date":"9/8/2020","value":7.03},
+    {"symbol":"F","type":"price","date":"9/9/2020","value":6.97},
+    {"symbol":"F","type":"price","date":"9/10/2020","value":6.91},
+    {"symbol":"F","type":"price","date":"9/11/2020","value":7.0},
+    {"symbol":"F","type":"price","date":"9/14/2020","value":7.12},
+    {"symbol":"F","type":"price","date":"9/15/2020","value":7.04},
+    {"symbol":"F","type":"price","date":"9/16/2020","value":7.02},
+    {"symbol":"F","type":"price","date":"9/17/2020","value":7.28},
+    {"symbol":"F","type":"price","date":"9/18/2020","value":7.23},
+    {"symbol":"F","type":"price","date":"9/21/2020","value":6.87},
+    {"symbol":"F","type":"price","date":"9/22/2020","value":6.78},
+    {"symbol":"F","type":"price","date":"9/23/2020","value":6.64},
+    {"symbol":"F","type":"price","date":"9/24/2020","value":6.66},
+    {"symbol":"F","type":"price","date":"9/25/2020","value":6.51},
+    {"symbol":"F","type":"price","date":"9/28/2020","value":6.69},
+    {"symbol":"F","type":"price","date":"9/29/2020","value":6.6},
+    {"symbol":"F","type":"price","date":"9/30/2020","value":6.66},
+    {"symbol":"F","type":"price","date":"10/1/2020","value":6.75},
+    {"symbol":"F","type":"price","date":"10/2/2020","value":6.89},
+    {"symbol":"F","type":"price","date":"10/5/2020","value":7.02},
+    {"symbol":"F","type":"price","date":"10/6/2020","value":6.98},
+    {"symbol":"F","type":"price","date":"10/7/2020","value":7.23},
+    {"symbol":"F","type":"price","date":"10/8/2020","value":7.35},
+    {"symbol":"F","type":"price","date":"10/9/2020","value":7.25},
+    {"symbol":"F","type":"price","date":"10/12/2020","value":7.67},
+    {"symbol":"F","type":"price","date":"10/13/2020","value":7.76},
+    {"symbol":"F","type":"price","date":"10/14/2020","value":7.57},
+    {"symbol":"F","type":"price","date":"10/15/2020","value":7.62},
+    {"symbol":"F","type":"price","date":"10/16/2020","value":7.67},
+    {"symbol":"F","type":"price","date":"10/19/2020","value":7.59},
+    {"symbol":"F","type":"price","date":"10/20/2020","value":7.74},
+    {"symbol":"F","type":"price","date":"10/21/2020","value":7.85},
+    {"symbol":"F","type":"price","date":"10/22/2020","value":8.21},
+    {"symbol":"F","type":"price","date":"10/23/2020","value":8.16},
+    {"symbol":"F","type":"price","date":"10/26/2020","value":8.03},
+    {"symbol":"F","type":"price","date":"10/27/2020","value":7.92},
+    {"symbol":"F","type":"price","date":"10/28/2020","value":7.7},
+    {"symbol":"F","type":"price","date":"10/29/2020","value":7.9},
+    {"symbol":"F","type":"price","date":"10/30/2020","value":7.73},
+    {"symbol":"F","type":"price","date":"11/2/2020","value":7.71},
+    {"symbol":"F","type":"price","date":"11/3/2020","value":7.88},
+    {"symbol":"F","type":"price","date":"11/4/2020","value":7.64},
+    {"symbol":"F","type":"price","date":"11/5/2020","value":7.99},
+    {"symbol":"F","type":"price","date":"11/6/2020","value":7.79},
+    {"symbol":"F","type":"price","date":"11/9/2020","value":8.2},
+    {"symbol":"F","type":"price","date":"11/10/2020","value":8.38},
+    {"symbol":"F","type":"price","date":"11/11/2020","value":8.33},
+    {"symbol":"F","type":"price","date":"11/12/2020","value":8.21},
+    {"symbol":"F","type":"price","date":"11/13/2020","value":8.54},
+    {"symbol":"F","type":"price","date":"11/16/2020","value":8.8},
+    {"symbol":"F","type":"price","date":"11/17/2020","value":8.75},
+    {"symbol":"F","type":"price","date":"11/18/2020","value":8.82},
+    {"symbol":"F","type":"price","date":"11/19/2020","value":8.82},
+    {"symbol":"F","type":"price","date":"11/20/2020","value":8.74},
+    {"symbol":"F","type":"price","date":"11/23/2020","value":8.86},
+    {"symbol":"F","type":"price","date":"11/24/2020","value":9.45},
+    {"symbol":"F","type":"price","date":"11/25/2020","value":9.08},
+    {"symbol":"F","type":"price","date":"11/27/2020","value":9.09},
+    {"symbol":"F","type":"price","date":"11/30/2020","value":9.08},
+    {"symbol":"F","type":"price","date":"12/1/2020","value":9.24},
+    {"symbol":"F","type":"price","date":"12/2/2020","value":9.2},
+    {"symbol":"F","type":"price","date":"12/3/2020","value":9.21},
+    {"symbol":"F","type":"price","date":"12/4/2020","value":9.34},
+    {"symbol":"F","type":"price","date":"12/7/2020","value":9.22},
+    {"symbol":"F","type":"price","date":"12/8/2020","value":9.25},
+    {"symbol":"F","type":"price","date":"12/9/2020","value":9.45},
+    {"symbol":"F","type":"price","date":"12/10/2020","value":9.12},
+    {"symbol":"F","type":"price","date":"12/11/2020","value":9.02},
+    {"symbol":"F","type":"price","date":"12/14/2020","value":8.91},
+    {"symbol":"F","type":"price","date":"12/15/2020","value":9.15},
+    {"symbol":"F","type":"price","date":"12/16/2020","value":9.04},
+    {"symbol":"F","type":"price","date":"12/17/2020","value":9.08},
+    {"symbol":"F","type":"price","date":"12/18/2020","value":8.95},
+    {"symbol":"F","type":"price","date":"12/21/2020","value":8.93},
+    {"symbol":"F","type":"price","date":"12/22/2020","value":8.79},
+    {"symbol":"F","type":"price","date":"12/23/2020","value":8.99},
+    {"symbol":"F","type":"price","date":"12/24/2020","value":8.86},
+    {"symbol":"F","type":"price","date":"12/28/2020","value":8.89},
+    {"symbol":"F","type":"price","date":"12/29/2020","value":8.82},
+    {"symbol":"F","type":"price","date":"12/30/2020","value":8.86},
+    {"symbol":"F","type":"price","date":"12/31/2020","value":8.79},
+  ]
+  let FPrice = new Data("F","price",dataFPrice);
+
+  let dataFVolumn = [
+    {"symbol":"F","type":"volumn","date":"12/31/2019","value":32342100},
+    {"symbol":"F","type":"volumn","date":"1/2/2020","value":43425700},
+    {"symbol":"F","type":"volumn","date":"1/3/2020","value":45040800},
+    {"symbol":"F","type":"volumn","date":"1/6/2020","value":43372300},
+    {"symbol":"F","type":"volumn","date":"1/7/2020","value":44984100},
+    {"symbol":"F","type":"volumn","date":"1/8/2020","value":45994900},
+    {"symbol":"F","type":"volumn","date":"1/9/2020","value":51817400},
+    {"symbol":"F","type":"volumn","date":"1/10/2020","value":39796300},
+    {"symbol":"F","type":"volumn","date":"1/13/2020","value":48553700},
+    {"symbol":"F","type":"volumn","date":"1/14/2020","value":42935600},
+    {"symbol":"F","type":"volumn","date":"1/15/2020","value":55923900},
+    {"symbol":"F","type":"volumn","date":"1/16/2020","value":44310400},
+    {"symbol":"F","type":"volumn","date":"1/17/2020","value":41644900},
+    {"symbol":"F","type":"volumn","date":"1/21/2020","value":49556400},
+    {"symbol":"F","type":"volumn","date":"1/22/2020","value":39914800},
+    {"symbol":"F","type":"volumn","date":"1/23/2020","value":75848700},
+    {"symbol":"F","type":"volumn","date":"1/24/2020","value":68100900},
+    {"symbol":"F","type":"volumn","date":"1/27/2020","value":60769300},
+    {"symbol":"F","type":"volumn","date":"1/28/2020","value":85163400},
+    {"symbol":"F","type":"volumn","date":"1/29/2020","value":59057400},
+    {"symbol":"F","type":"volumn","date":"1/30/2020","value":42827800},
+    {"symbol":"F","type":"volumn","date":"1/31/2020","value":59813700},
+    {"symbol":"F","type":"volumn","date":"2/3/2020","value":71432700},
+    {"symbol":"F","type":"volumn","date":"2/4/2020","value":86196400},
+    {"symbol":"F","type":"volumn","date":"2/5/2020","value":145792500},
+    {"symbol":"F","type":"volumn","date":"2/6/2020","value":68823400},
+    {"symbol":"F","type":"volumn","date":"2/7/2020","value":98256500},
+    {"symbol":"F","type":"volumn","date":"2/10/2020","value":71834900},
+    {"symbol":"F","type":"volumn","date":"2/11/2020","value":80164500},
+    {"symbol":"F","type":"volumn","date":"2/12/2020","value":111536800},
+    {"symbol":"F","type":"volumn","date":"2/13/2020","value":67648800},
+    {"symbol":"F","type":"volumn","date":"2/14/2020","value":46359700},
+    {"symbol":"F","type":"volumn","date":"2/18/2020","value":65094800},
+    {"symbol":"F","type":"volumn","date":"2/19/2020","value":69668200},
+    {"symbol":"F","type":"volumn","date":"2/20/2020","value":52318200},
+    {"symbol":"F","type":"volumn","date":"2/21/2020","value":58326300},
+    {"symbol":"F","type":"volumn","date":"2/24/2020","value":110048200},
+    {"symbol":"F","type":"volumn","date":"2/25/2020","value":108888300},
+    {"symbol":"F","type":"volumn","date":"2/26/2020","value":92469500},
+    {"symbol":"F","type":"volumn","date":"2/27/2020","value":118642400},
+    {"symbol":"F","type":"volumn","date":"2/28/2020","value":116546700},
+    {"symbol":"F","type":"volumn","date":"3/2/2020","value":96766000},
+    {"symbol":"F","type":"volumn","date":"3/3/2020","value":97457800},
+    {"symbol":"F","type":"volumn","date":"3/4/2020","value":70588100},
+    {"symbol":"F","type":"volumn","date":"3/5/2020","value":78070900},
+    {"symbol":"F","type":"volumn","date":"3/6/2020","value":109932200},
+    {"symbol":"F","type":"volumn","date":"3/9/2020","value":103901700},
+    {"symbol":"F","type":"volumn","date":"3/10/2020","value":101873600},
+    {"symbol":"F","type":"volumn","date":"3/11/2020","value":98587100},
+    {"symbol":"F","type":"volumn","date":"3/12/2020","value":89453100},
+    {"symbol":"F","type":"volumn","date":"3/13/2020","value":125375300},
+    {"symbol":"F","type":"volumn","date":"3/16/2020","value":110310900},
+    {"symbol":"F","type":"volumn","date":"3/17/2020","value":104233500},
+    {"symbol":"F","type":"volumn","date":"3/18/2020","value":125954700},
+    {"symbol":"F","type":"volumn","date":"3/19/2020","value":126603800},
+    {"symbol":"F","type":"volumn","date":"3/20/2020","value":129378600},
+    {"symbol":"F","type":"volumn","date":"3/23/2020","value":134925000},
+    {"symbol":"F","type":"volumn","date":"3/24/2020","value":146192100},
+    {"symbol":"F","type":"volumn","date":"3/25/2020","value":198999400},
+    {"symbol":"F","type":"volumn","date":"3/26/2020","value":138227600},
+    {"symbol":"F","type":"volumn","date":"3/27/2020","value":106324000},
+    {"symbol":"F","type":"volumn","date":"3/30/2020","value":97879700},
+    {"symbol":"F","type":"volumn","date":"3/31/2020","value":231800800},
+    {"symbol":"F","type":"volumn","date":"4/1/2020","value":119174500},
+    {"symbol":"F","type":"volumn","date":"4/2/2020","value":90891700},
+    {"symbol":"F","type":"volumn","date":"4/3/2020","value":85659900},
+    {"symbol":"F","type":"volumn","date":"4/6/2020","value":102205300},
+    {"symbol":"F","type":"volumn","date":"4/7/2020","value":115150400},
+    {"symbol":"F","type":"volumn","date":"4/8/2020","value":117022200},
+    {"symbol":"F","type":"volumn","date":"4/9/2020","value":175833700},
+    {"symbol":"F","type":"volumn","date":"4/13/2020","value":99320000},
+    {"symbol":"F","type":"volumn","date":"4/14/2020","value":74877000},
+    {"symbol":"F","type":"volumn","date":"4/15/2020","value":74727700},
+    {"symbol":"F","type":"volumn","date":"4/16/2020","value":58951200},
+    {"symbol":"F","type":"volumn","date":"4/17/2020","value":91989300},
+    {"symbol":"F","type":"volumn","date":"4/20/2020","value":71079400},
+    {"symbol":"F","type":"volumn","date":"4/21/2020","value":82400200},
+    {"symbol":"F","type":"volumn","date":"4/22/2020","value":62398600},
+    {"symbol":"F","type":"volumn","date":"4/23/2020","value":61959800},
+    {"symbol":"F","type":"volumn","date":"4/24/2020","value":54352500},
+    {"symbol":"F","type":"volumn","date":"4/27/2020","value":91082800},
+    {"symbol":"F","type":"volumn","date":"4/28/2020","value":106222800},
+    {"symbol":"F","type":"volumn","date":"4/29/2020","value":126393000},
+    {"symbol":"F","type":"volumn","date":"4/30/2020","value":93437900},
+    {"symbol":"F","type":"volumn","date":"5/1/2020","value":82660100},
+    {"symbol":"F","type":"volumn","date":"5/4/2020","value":84214700},
+    {"symbol":"F","type":"volumn","date":"5/5/2020","value":96301300},
+    {"symbol":"F","type":"volumn","date":"5/6/2020","value":89390400},
+    {"symbol":"F","type":"volumn","date":"5/7/2020","value":67222900},
+    {"symbol":"F","type":"volumn","date":"5/8/2020","value":101333800},
+    {"symbol":"F","type":"volumn","date":"5/11/2020","value":75734000},
+    {"symbol":"F","type":"volumn","date":"5/12/2020","value":70965200},
+    {"symbol":"F","type":"volumn","date":"5/13/2020","value":100192300},
+    {"symbol":"F","type":"volumn","date":"5/14/2020","value":108061100},
+    {"symbol":"F","type":"volumn","date":"5/15/2020","value":80544700},
+    {"symbol":"F","type":"volumn","date":"5/18/2020","value":136241400},
+    {"symbol":"F","type":"volumn","date":"5/19/2020","value":94836300},
+    {"symbol":"F","type":"volumn","date":"5/20/2020","value":87685400},
+    {"symbol":"F","type":"volumn","date":"5/21/2020","value":87098200},
+    {"symbol":"F","type":"volumn","date":"5/22/2020","value":76656500},
+    {"symbol":"F","type":"volumn","date":"5/26/2020","value":86046300},
+    {"symbol":"F","type":"volumn","date":"5/27/2020","value":110413900},
+    {"symbol":"F","type":"volumn","date":"5/28/2020","value":76930200},
+    {"symbol":"F","type":"volumn","date":"5/29/2020","value":93039200},
+    {"symbol":"F","type":"volumn","date":"6/1/2020","value":61879700},
+    {"symbol":"F","type":"volumn","date":"6/2/2020","value":80046000},
+    {"symbol":"F","type":"volumn","date":"6/3/2020","value":98876600},
+    {"symbol":"F","type":"volumn","date":"6/4/2020","value":115798600},
+    {"symbol":"F","type":"volumn","date":"6/5/2020","value":208648200},
+    {"symbol":"F","type":"volumn","date":"6/8/2020","value":113169300},
+    {"symbol":"F","type":"volumn","date":"6/9/2020","value":115749600},
+    {"symbol":"F","type":"volumn","date":"6/10/2020","value":147327100},
+    {"symbol":"F","type":"volumn","date":"6/11/2020","value":116184700},
+    {"symbol":"F","type":"volumn","date":"6/12/2020","value":88778000},
+    {"symbol":"F","type":"volumn","date":"6/15/2020","value":104742600},
+    {"symbol":"F","type":"volumn","date":"6/16/2020","value":109535200},
+    {"symbol":"F","type":"volumn","date":"6/17/2020","value":67831400},
+    {"symbol":"F","type":"volumn","date":"6/18/2020","value":61301800},
+    {"symbol":"F","type":"volumn","date":"6/19/2020","value":126127800},
+    {"symbol":"F","type":"volumn","date":"6/22/2020","value":71724300},
+    {"symbol":"F","type":"volumn","date":"6/23/2020","value":86672800},
+    {"symbol":"F","type":"volumn","date":"6/24/2020","value":75536300},
+    {"symbol":"F","type":"volumn","date":"6/25/2020","value":73612700},
+    {"symbol":"F","type":"volumn","date":"6/26/2020","value":118435400},
+    {"symbol":"F","type":"volumn","date":"6/29/2020","value":58208400},
+    {"symbol":"F","type":"volumn","date":"6/30/2020","value":61909300},
+    {"symbol":"F","type":"volumn","date":"7/1/2020","value":62454700},
+    {"symbol":"F","type":"volumn","date":"7/2/2020","value":67270500},
+    {"symbol":"F","type":"volumn","date":"7/6/2020","value":63921800},
+    {"symbol":"F","type":"volumn","date":"7/7/2020","value":56652000},
+    {"symbol":"F","type":"volumn","date":"7/8/2020","value":60928600},
+    {"symbol":"F","type":"volumn","date":"7/9/2020","value":82693000},
+    {"symbol":"F","type":"volumn","date":"7/10/2020","value":73710700},
+    {"symbol":"F","type":"volumn","date":"7/13/2020","value":80190700},
+    {"symbol":"F","type":"volumn","date":"7/14/2020","value":106131800},
+    {"symbol":"F","type":"volumn","date":"7/15/2020","value":101648700},
+    {"symbol":"F","type":"volumn","date":"7/16/2020","value":93498500},
+    {"symbol":"F","type":"volumn","date":"7/17/2020","value":80769000},
+    {"symbol":"F","type":"volumn","date":"7/20/2020","value":71361700},
+    {"symbol":"F","type":"volumn","date":"7/21/2020","value":63343900},
+    {"symbol":"F","type":"volumn","date":"7/22/2020","value":75629600},
+    {"symbol":"F","type":"volumn","date":"7/23/2020","value":88652600},
+    {"symbol":"F","type":"volumn","date":"7/24/2020","value":62292000},
+    {"symbol":"F","type":"volumn","date":"7/27/2020","value":60370200},
+    {"symbol":"F","type":"volumn","date":"7/28/2020","value":56312500},
+    {"symbol":"F","type":"volumn","date":"7/29/2020","value":59437200},
+    {"symbol":"F","type":"volumn","date":"7/30/2020","value":58991000},
+    {"symbol":"F","type":"volumn","date":"7/31/2020","value":115394100},
+    {"symbol":"F","type":"volumn","date":"8/3/2020","value":53845900},
+    {"symbol":"F","type":"volumn","date":"8/4/2020","value":69377600},
+    {"symbol":"F","type":"volumn","date":"8/5/2020","value":82716400},
+    {"symbol":"F","type":"volumn","date":"8/6/2020","value":48668500},
+    {"symbol":"F","type":"volumn","date":"8/7/2020","value":47480100},
+    {"symbol":"F","type":"volumn","date":"8/10/2020","value":57229000},
+    {"symbol":"F","type":"volumn","date":"8/11/2020","value":74016400},
+    {"symbol":"F","type":"volumn","date":"8/12/2020","value":59194100},
+    {"symbol":"F","type":"volumn","date":"8/13/2020","value":50066800},
+    {"symbol":"F","type":"volumn","date":"8/14/2020","value":43517700},
+    {"symbol":"F","type":"volumn","date":"8/17/2020","value":64555200},
+    {"symbol":"F","type":"volumn","date":"8/18/2020","value":40444200},
+    {"symbol":"F","type":"volumn","date":"8/19/2020","value":44158100},
+    {"symbol":"F","type":"volumn","date":"8/20/2020","value":41824500},
+    {"symbol":"F","type":"volumn","date":"8/21/2020","value":39158900},
+    {"symbol":"F","type":"volumn","date":"8/24/2020","value":64974700},
+    {"symbol":"F","type":"volumn","date":"8/25/2020","value":49550000},
+    {"symbol":"F","type":"volumn","date":"8/26/2020","value":48600100},
+    {"symbol":"F","type":"volumn","date":"8/27/2020","value":45740900},
+    {"symbol":"F","type":"volumn","date":"8/28/2020","value":39936900},
+    {"symbol":"F","type":"volumn","date":"8/31/2020","value":50089500},
+    {"symbol":"F","type":"volumn","date":"9/1/2020","value":48214200},
+    {"symbol":"F","type":"volumn","date":"9/2/2020","value":59008900},
+    {"symbol":"F","type":"volumn","date":"9/3/2020","value":78130900},
+    {"symbol":"F","type":"volumn","date":"9/4/2020","value":70017500},
+    {"symbol":"F","type":"volumn","date":"9/8/2020","value":84749300},
+    {"symbol":"F","type":"volumn","date":"9/9/2020","value":56501400},
+    {"symbol":"F","type":"volumn","date":"9/10/2020","value":69228600},
+    {"symbol":"F","type":"volumn","date":"9/11/2020","value":55080600},
+    {"symbol":"F","type":"volumn","date":"9/14/2020","value":58704300},
+    {"symbol":"F","type":"volumn","date":"9/15/2020","value":65198500},
+    {"symbol":"F","type":"volumn","date":"9/16/2020","value":46245800},
+    {"symbol":"F","type":"volumn","date":"9/17/2020","value":84850100},
+    {"symbol":"F","type":"volumn","date":"9/18/2020","value":71929400},
+    {"symbol":"F","type":"volumn","date":"9/21/2020","value":72850300},
+    {"symbol":"F","type":"volumn","date":"9/22/2020","value":55865500},
+    {"symbol":"F","type":"volumn","date":"9/23/2020","value":52588600},
+    {"symbol":"F","type":"volumn","date":"9/24/2020","value":59822900},
+    {"symbol":"F","type":"volumn","date":"9/25/2020","value":53761800},
+    {"symbol":"F","type":"volumn","date":"9/28/2020","value":47582600},
+    {"symbol":"F","type":"volumn","date":"9/29/2020","value":38987300},
+    {"symbol":"F","type":"volumn","date":"9/30/2020","value":55944600},
+    {"symbol":"F","type":"volumn","date":"10/1/2020","value":58340600},
+    {"symbol":"F","type":"volumn","date":"10/2/2020","value":60798400},
+    {"symbol":"F","type":"volumn","date":"10/5/2020","value":42359400},
+    {"symbol":"F","type":"volumn","date":"10/6/2020","value":78203800},
+    {"symbol":"F","type":"volumn","date":"10/7/2020","value":50664100},
+    {"symbol":"F","type":"volumn","date":"10/8/2020","value":54513300},
+    {"symbol":"F","type":"volumn","date":"10/9/2020","value":50977900},
+    {"symbol":"F","type":"volumn","date":"10/12/2020","value":97692900},
+    {"symbol":"F","type":"volumn","date":"10/13/2020","value":74562600},
+    {"symbol":"F","type":"volumn","date":"10/14/2020","value":57808900},
+    {"symbol":"F","type":"volumn","date":"10/15/2020","value":49336200},
+    {"symbol":"F","type":"volumn","date":"10/16/2020","value":47509400},
+    {"symbol":"F","type":"volumn","date":"10/19/2020","value":38960700},
+    {"symbol":"F","type":"volumn","date":"10/20/2020","value":63447000},
+    {"symbol":"F","type":"volumn","date":"10/21/2020","value":51981100},
+    {"symbol":"F","type":"volumn","date":"10/22/2020","value":74008500},
+    {"symbol":"F","type":"volumn","date":"10/23/2020","value":62249000},
+    {"symbol":"F","type":"volumn","date":"10/26/2020","value":62131000},
+    {"symbol":"F","type":"volumn","date":"10/27/2020","value":64154500},
+    {"symbol":"F","type":"volumn","date":"10/28/2020","value":82938300},
+    {"symbol":"F","type":"volumn","date":"10/29/2020","value":118999900},
+    {"symbol":"F","type":"volumn","date":"10/30/2020","value":79345600},
+    {"symbol":"F","type":"volumn","date":"11/2/2020","value":59962900},
+    {"symbol":"F","type":"volumn","date":"11/3/2020","value":65108800},
+    {"symbol":"F","type":"volumn","date":"11/4/2020","value":67326800},
+    {"symbol":"F","type":"volumn","date":"11/5/2020","value":61442600},
+    {"symbol":"F","type":"volumn","date":"11/6/2020","value":50912100},
+    {"symbol":"F","type":"volumn","date":"11/9/2020","value":110511300},
+    {"symbol":"F","type":"volumn","date":"11/10/2020","value":87468400},
+    {"symbol":"F","type":"volumn","date":"11/11/2020","value":75644400},
+    {"symbol":"F","type":"volumn","date":"11/12/2020","value":81064900},
+    {"symbol":"F","type":"volumn","date":"11/13/2020","value":79475100},
+    {"symbol":"F","type":"volumn","date":"11/16/2020","value":84853900},
+    {"symbol":"F","type":"volumn","date":"11/17/2020","value":46754500},
+    {"symbol":"F","type":"volumn","date":"11/18/2020","value":77759300},
+    {"symbol":"F","type":"volumn","date":"11/19/2020","value":56672700},
+    {"symbol":"F","type":"volumn","date":"11/20/2020","value":57024300},
+    {"symbol":"F","type":"volumn","date":"11/23/2020","value":71537100},
+    {"symbol":"F","type":"volumn","date":"11/24/2020","value":99520500},
+    {"symbol":"F","type":"volumn","date":"11/25/2020","value":95217800},
+    {"symbol":"F","type":"volumn","date":"11/27/2020","value":27853900},
+    {"symbol":"F","type":"volumn","date":"11/30/2020","value":77970100},
+    {"symbol":"F","type":"volumn","date":"12/1/2020","value":68970300},
+    {"symbol":"F","type":"volumn","date":"12/2/2020","value":48345000},
+    {"symbol":"F","type":"volumn","date":"12/3/2020","value":50302100},
+    {"symbol":"F","type":"volumn","date":"12/4/2020","value":48775500},
+    {"symbol":"F","type":"volumn","date":"12/7/2020","value":58305200},
+    {"symbol":"F","type":"volumn","date":"12/8/2020","value":56296700},
+    {"symbol":"F","type":"volumn","date":"12/9/2020","value":60780300},
+    {"symbol":"F","type":"volumn","date":"12/10/2020","value":83372800},
+    {"symbol":"F","type":"volumn","date":"12/11/2020","value":73438200},
+    {"symbol":"F","type":"volumn","date":"12/14/2020","value":76826000},
+    {"symbol":"F","type":"volumn","date":"12/15/2020","value":69665900},
+    {"symbol":"F","type":"volumn","date":"12/16/2020","value":55274500},
+    {"symbol":"F","type":"volumn","date":"12/17/2020","value":49301600},
+    {"symbol":"F","type":"volumn","date":"12/18/2020","value":78764600},
+    {"symbol":"F","type":"volumn","date":"12/21/2020","value":63908100},
+    {"symbol":"F","type":"volumn","date":"12/22/2020","value":59031200},
+    {"symbol":"F","type":"volumn","date":"12/23/2020","value":54086700},
+    {"symbol":"F","type":"volumn","date":"12/24/2020","value":27927000},
+    {"symbol":"F","type":"volumn","date":"12/28/2020","value":38068400},
+    {"symbol":"F","type":"volumn","date":"12/29/2020","value":37537900},
+    {"symbol":"F","type":"volumn","date":"12/30/2020","value":38461900},
+    {"symbol":"F","type":"volumn","date":"12/31/2020","value":40176500},
+  ]
+  let FVolumn = new Data("F","volumn",dataFVolumn);
+
+
+
+
+  let dataTeslaRevenue =  [{"symbol":"TSLA","type":"Total Revenue","date":"12/31/2019","value":7384000},
+                          {"symbol":"TSLA","type":"Total Revenue","date":"3/31/2020","value":5985000},
+                          {"symbol":"TSLA","type":"Total Revenue","date":"6/30/2020","value":6036000},
+                          {"symbol":"TSLA","type":"Total Revenue","date":"9/30/2020","value":8771000},
+                          {"symbol":"TSLA","type":"Total Revenue","date":"12/31/2020","value":10744000},];
+  let TSLARevenue = new Data("TSLA","Total Revenue",dataTeslaRevenue);
+
+  let dataTeslaCost = [{"symbol":"TSLA","type":"Cost of Revenue","date":"12/31/2019","value":5993000},
+                      {"symbol":"TSLA","type":"Cost of Revenue","date":"3/31/2020","value":4751000},
+                      {"symbol":"TSLA","type":"Cost of Revenue","date":"6/30/2020","value":4769000},
+                      {"symbol":"TSLA","type":"Cost of Revenue","date":"9/30/2020","value":6708000},
+                      {"symbol":"TSLA","type":"Cost of Revenue","date":"12/31/2020","value":8678000},]
+  let TeslaCost = new Data("TSLA","Cost of Revenue",dataTeslaCost);
+
+  let dataTeslaDebt =  [{"symbol":"TSLA","type":"Total Debt","date":"12/31/2019","value":14469000},
+                        {"symbol":"TSLA","type":"Total Debt","date":"3/31/2020","value":15200000},
+                        {"symbol":"TSLA","type":"Total Debt","date":"6/30/2020","value":15477000},
+                        {"symbol":"TSLA","type":"Total Debt","date":"9/30/2020","value":15163000},
+                        {"symbol":"TSLA","type":"Total Debt","date":"12/31/2020","value":13279000},]
+  let TeslaDebt = new Data("TSLA","Total Debt",dataTeslaDebt);
+
+  let dataTeslaCap = [{"symbol":"TSLA","type":"Total Capitalization","date":"12/31/2019","value":18252000},
+            {"symbol":"TSLA","type":"Total Capitalization","date":"3/31/2020","value":18712000},
+            {"symbol":"TSLA","type":"Total Capitalization","date":"6/30/2020","value":19146000},
+            {"symbol":"TSLA","type":"Total Capitalization","date":"9/30/2020","value":25507000},
+            {"symbol":"TSLA","type":"Total Capitalization","date":"12/31/2020","value":31832000},]
+  let TeslaCap = new Data("TSLA","Total Capitalization",dataTeslaCap);
+
+  let dataTeslaEquity = [{"symbol":"TSLA","type":"Total Equity","date":"12/31/2019","value":7467000},
+            {"symbol":"TSLA","type":"Total Equity","date":"3/31/2020","value":10040000},
+            {"symbol":"TSLA","type":"Total Equity","date":"6/30/2020","value":10724000},
+            {"symbol":"TSLA","type":"Total Equity","date":"9/30/2020","value":16892000},
+            {"symbol":"TSLA","type":"Total Equity","date":"12/31/2020","value":23075000},]
+  let TeslaEquity = new Data("TSLA","Total Equity",dataTeslaEquity);
+
+  let dataTeslaLiabilities = [{"symbol":"TSLA","type":"Total Liabilities","date":"12/31/2019","value":26842000},
+            {"symbol":"TSLA","type":"Total Liabilities","date":"3/31/2020","value":27210000},
+            {"symbol":"TSLA","type":"Total Liabilities","date":"6/30/2020","value":27411000},
+            {"symbol":"TSLA","type":"Total Liabilities","date":"9/30/2020","value":28799000},
+            {"symbol":"TSLA","type":"Total Liabilities","date":"12/31/2020","value":29073000},]
+  let TeslaLiabilities = new Data("TSLA","Total Liabilities",dataTeslaLiabilities);
+
+  let dataTeslaAssets = [{"symbol":"TSLA","type":"Total Assets","date":"12/31/2019","value":34309000},
+            {"symbol":"TSLA","type":"Total Assets","date":"3/31/2020","value":37250000},
+            {"symbol":"TSLA","type":"Total Assets","date":"6/30/2020","value":38135000},
+            {"symbol":"TSLA","type":"Total Assets","date":"9/30/2020","value":45691000},
+            {"symbol":"TSLA","type":"Total Assets","date":"12/31/2020","value":52148000},]
+  let TeslaAssets = new Data("TSLA","Total Assets",dataTeslaAssets);
+
+  let dataTeslaIncome = [{"symbol":"TSLA","type":"Operating Income","date":"12/31/2019","value":347000},
+            {"symbol":"TSLA","type":"Operating Income","date":"3/31/2020","value":283000},
+            {"symbol":"TSLA","type":"Operating Income","date":"6/30/2020","value":327000},
+            {"symbol":"TSLA","type":"Operating Income","date":"9/30/2020","value":809000},
+            {"symbol":"TSLA","type":"Operating Income","date":"12/31/2020","value":575000},]
+  let TeslaIncome = new Data("TSLA","Operating Income",dataTeslaIncome);
+
+  let dataTeslaExpense = [{"symbol":"TSLA","type":"Operating Expense","date":"12/31/2019","value":1044000},
+            {"symbol":"TSLA","type":"Operating Expense","date":"3/31/2020","value":951000},
+            {"symbol":"TSLA","type":"Operating Expense","date":"6/30/2020","value":940000},
+            {"symbol":"TSLA","type":"Operating Expense","date":"9/30/2020","value":1254000},
+            {"symbol":"TSLA","type":"Operating Expense","date":"12/31/2020","value":1491000},]
+  let TeslaExpense = new Data("TSLA","Operating Expense",dataTeslaExpense);
+
+  let dataTeslaProfit = [{"symbol":"TSLA","type":"Gross Profit","date":"12/31/2019","value":1391000},
+            {"symbol":"TSLA","type":"Gross Profit","date":"3/31/2020","value":1234000},
+            {"symbol":"TSLA","type":"Gross Profit","date":"6/30/2020","value":1267000},
+            {"symbol":"TSLA","type":"Gross Profit","date":"9/30/2020","value":2063000},
+            {"symbol":"TSLA","type":"Gross Profit","date":"12/31/2020","value":2066000},]
+  let TeslaProfit = new Data("TSLA","Gross Profit",dataTeslaProfit);
+
+  let dataFRevenue =  [{"symbol":"F","type":"Total Revenue","date":"12/31/2019","value":39715000},
+                      {"symbol":"F","type":"Total Revenue","date":"3/31/2020","value":34320000},
+                      {"symbol":"F","type":"Total Revenue","date":"6/30/2020","value":19371000},
+                      {"symbol":"F","type":"Total Revenue","date":"9/30/2020","value":37501000},
+                      {"symbol":"F","type":"Total Revenue","date":"12/31/2020","value":35952000},];
+  let FRevenue = new Data("F","Total Revenue",dataFRevenue);
+
+  let dataFCost = [{"symbol":"F","type":"Cost of Revenue","date":"12/31/2019","value":34812000},
+                    {"symbol":"F","type":"Cost of Revenue","date":"3/31/2020","value":30522000},
+                    {"symbol":"F","type":"Cost of Revenue","date":"6/30/2020","value":17932000},
+                    {"symbol":"F","type":"Cost of Revenue","date":"9/30/2020","value":31223000},
+                    {"symbol":"F","type":"Cost of Revenue","date":"12/31/2020","value":33075000},]
+  let FCost = new Data("F","Cost of Revenue",dataFCost);
+
+  let dataFDebt =  [{"symbol":"F","type":"Total Debt","date":"12/31/2019","value":156721000},
+                    {"symbol":"F","type":"Total Debt","date":"3/31/2020","value":168693000},
+                    {"symbol":"F","type":"Total Debt","date":"6/30/2020","value":176483000},
+                    {"symbol":"F","type":"Total Debt","date":"9/30/2020","value":158561000},
+                    {"symbol":"F","type":"Total Debt","date":"12/31/2020","value":162998000},]
+  let FDebt = new Data("F","Total Debt",dataFDebt);
+
+  let dataFCap = [{"symbol":"F","type":"Total Capitalization","date":"12/31/2019","value":134546000},
+                  {"symbol":"F","type":"Total Capitalization","date":"3/31/2020","value":144064000},
+                  {"symbol":"F","type":"Total Capitalization","date":"6/30/2020","value":150710000},
+                  {"symbol":"F","type":"Total Capitalization","date":"9/30/2020","value":57133000},
+                  {"symbol":"F","type":"Total Capitalization","date":"12/31/2020","value":141031000},]
+  let FCap = new Data("F","Total Capitalization",dataFCap);
+
+  let dataFEquity = [{"symbol":"F","type":"Total Equity","date":"12/31/2019","value":33230000},
+                    {"symbol":"F","type":"Total Equity","date":"3/31/2020","value":29698000},
+                    {"symbol":"F","type":"Total Equity","date":"6/30/2020","value":30855000},
+                    {"symbol":"F","type":"Total Equity","date":"9/30/2020","value":33161000},
+                    {"symbol":"F","type":"Total Equity","date":"12/31/2020","value":30811000},]
+  let FEquity = new Data("F","Total Equity",dataFEquity);
+
+  let dataFLiabilities = [{"symbol":"F","type":"Total Liabilities","date":"12/31/2019","value":225307000},
+                          {"symbol":"F","type":"Total Liabilities","date":"3/31/2020","value":234452000},
+                          {"symbol":"F","type":"Total Liabilities","date":"6/30/2020","value":238511000},
+                          {"symbol":"F","type":"Total Liabilities","date":"9/30/2020","value":226782000},
+                          {"symbol":"F","type":"Total Liabilities","date":"12/31/2020","value":236450000},]
+  let FLiabilities = new Data("F","Total Liabilities",dataFLiabilities);
+
+  let dataFAssets = [{"symbol":"F","type":"Total Assets","date":"12/31/2019","value":258537000},
+                      {"symbol":"F","type":"Total Assets","date":"3/31/2020","value":264150000},
+                      {"symbol":"F","type":"Total Assets","date":"6/30/2020","value":269366000},
+                      {"symbol":"F","type":"Total Assets","date":"9/30/2020","value":259943000},
+                      {"symbol":"F","type":"Total Assets","date":"12/31/2020","value":267261000},]
+  let FAssets = new Data("F","Total Assets",dataFAssets);
+
+  let dataFIncome = [{"symbol":"F","type":"Operating Income","date":"12/31/2019","value":-457000},
+                      {"symbol":"F","type":"Operating Income","date":"3/31/2020","value":-1558000},
+                      {"symbol":"F","type":"Operating Income","date":"6/30/2020","value":-2759000},
+                      {"symbol":"F","type":"Operating Income","date":"9/30/2020","value":2351000},
+                      {"symbol":"F","type":"Operating Income","date":"12/31/2020","value":-2442000},]
+  let FIncome = new Data("F","Operating Income",dataFIncome);
+
+  let dataFExpense = [{"symbol":"F","type":"Operating Expense","date":"12/31/2019","value":5360000},
+                      {"symbol":"F","type":"Operating Expense","date":"3/31/2020","value":5356000},
+                      {"symbol":"F","type":"Operating Expense","date":"6/30/2020","value":4198000},
+                      {"symbol":"F","type":"Operating Expense","date":"9/30/2020","value":3927000},
+                      {"symbol":"F","type":"Operating Expense","date":"12/31/2020","value":5319000},]
+  let FExpense = new Data("F","Operating Expense",dataFExpense);
+
+  let dataFProfit = [{"symbol":"F","type":"Gross Profit","date":"12/31/2019","value":4903000},
+                      {"symbol":"F","type":"Gross Profit","date":"3/31/2020","value":3798000},
+                      {"symbol":"F","type":"Gross Profit","date":"6/30/2020","value":1439000},
+                      {"symbol":"F","type":"Gross Profit","date":"9/30/2020","value":6278000},
+                      {"symbol":"F","type":"Gross Profit","date":"12/31/2020","value":2877000},]
+  let FProfit = new Data("F","Gross Profit",dataFProfit);
+
+
+  let l = new Linechart()
+  visualizations.push(l)
+  l.addData(TSLAVolumn)
+  l.addData(FVolumn)
+  l.plot()
+
+  let lp = new LinePercentagechart()
+  visualizations.push(lp)
+  lp.addData(TSLAPrice)
+  lp.addData(FPrice)
+  lp.plot()
+
+  let t = new Table()
+  visualizations.push(t)
+  t.addData(TSLARevenue)
+  t.addData(TeslaCost)
+  t.addData(TeslaDebt)
+  t.addData(TeslaCap)
+  t.addData(TeslaLiabilities)
+  t.addData(TeslaEquity)
+  t.addData(TeslaAssets)
+  t.addData(TeslaIncome)
+  t.addData(TeslaExpense)
+  t.addData(TeslaProfit)
+  t.addData(FRevenue)
+  t.addData(FCost)
+  t.addData(FDebt)
+  t.addData(FCap)
+  t.addData(FLiabilities)
+  t.addData(FEquity)
+  t.addData(FAssets)
+  t.addData(FIncome)
+  t.addData(FExpense)
+  t.addData(FProfit)
+
+  t.plot()
+
+  let b = new Barchart()
+  visualizations.push(b)
+  // b.addData(TSLARevenue)
+  // b.addData(TeslaCost)
+  b.plot()
+
+  let bp = new BarPercentagechart()
+  visualizations.push(bp)
+  // b.addData(TSLARevenue)
+  // b.addData(TeslaCost)
+  bp.plot()
+
+  let s = new Storage()
+  visualizations.push(s)
+  // s.addData(TSLARevenue)
+  // s.addData(TeslaCost)
+  s.plot()
+
+
+
+
+
+</script>
+
+</body>
