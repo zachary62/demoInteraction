@@ -674,6 +674,7 @@ class BarPercentagechart extends Visualization{
         var yAxis = d3.svg.axis()
             .scale(y)
             .orient("left")
+            .tickFormat(d3.format(".0%"))
             .ticks(10);
 
         x.domain(dataTeslaRevenue.map(function(d) { return d.date; }));
@@ -1865,8 +1866,521 @@ class Storage extends Visualization{
   ]
   let FVolumn = new Data("F","volumn",dataFVolumn);
 
+  let dataNIOPrice = [
+    {"symbol":"NIO","type":"price","date":"12/31/2019","value":4.02},
+    {"symbol":"NIO","type":"price","date":"1/2/2020","value":3.72},
+    {"symbol":"NIO","type":"price","date":"1/3/2020","value":3.83},
+    {"symbol":"NIO","type":"price","date":"1/6/2020","value":3.68},
+    {"symbol":"NIO","type":"price","date":"1/7/2020","value":3.24},
+    {"symbol":"NIO","type":"price","date":"1/8/2020","value":3.39},
+    {"symbol":"NIO","type":"price","date":"1/9/2020","value":3.46},
+    {"symbol":"NIO","type":"price","date":"1/10/2020","value":3.51},
+    {"symbol":"NIO","type":"price","date":"1/13/2020","value":3.7},
+    {"symbol":"NIO","type":"price","date":"1/14/2020","value":3.76},
+    {"symbol":"NIO","type":"price","date":"1/15/2020","value":4.29},
+    {"symbol":"NIO","type":"price","date":"1/16/2020","value":4.37},
+    {"symbol":"NIO","type":"price","date":"1/17/2020","value":4.67},
+    {"symbol":"NIO","type":"price","date":"1/21/2020","value":5.17},
+    {"symbol":"NIO","type":"price","date":"1/22/2020","value":4.79},
+    {"symbol":"NIO","type":"price","date":"1/23/2020","value":4.92},
+    {"symbol":"NIO","type":"price","date":"1/24/2020","value":4.66},
+    {"symbol":"NIO","type":"price","date":"1/27/2020","value":4.01},
+    {"symbol":"NIO","type":"price","date":"1/28/2020","value":4.21},
+    {"symbol":"NIO","type":"price","date":"1/29/2020","value":4.27},
+    {"symbol":"NIO","type":"price","date":"1/30/2020","value":4.08},
+    {"symbol":"NIO","type":"price","date":"1/31/2020","value":3.78},
+    {"symbol":"NIO","type":"price","date":"2/3/2020","value":4.06},
+    {"symbol":"NIO","type":"price","date":"2/4/2020","value":4.51},
+    {"symbol":"NIO","type":"price","date":"2/5/2020","value":4.39},
+    {"symbol":"NIO","type":"price","date":"2/6/2020","value":4.08},
+    {"symbol":"NIO","type":"price","date":"2/7/2020","value":3.81},
+    {"symbol":"NIO","type":"price","date":"2/10/2020","value":3.87},
+    {"symbol":"NIO","type":"price","date":"2/11/2020","value":3.96},
+    {"symbol":"NIO","type":"price","date":"2/12/2020","value":4.07},
+    {"symbol":"NIO","type":"price","date":"2/13/2020","value":4.03},
+    {"symbol":"NIO","type":"price","date":"2/14/2020","value":3.77},
+    {"symbol":"NIO","type":"price","date":"2/18/2020","value":3.8},
+    {"symbol":"NIO","type":"price","date":"2/19/2020","value":4.08},
+    {"symbol":"NIO","type":"price","date":"2/20/2020","value":4.26},
+    {"symbol":"NIO","type":"price","date":"2/21/2020","value":4.08},
+    {"symbol":"NIO","type":"price","date":"2/24/2020","value":3.88},
+    {"symbol":"NIO","type":"price","date":"2/25/2020","value":4.4},
+    {"symbol":"NIO","type":"price","date":"2/26/2020","value":4.34},
+    {"symbol":"NIO","type":"price","date":"2/27/2020","value":4.14},
+    {"symbol":"NIO","type":"price","date":"2/28/2020","value":4.13},
+    {"symbol":"NIO","type":"price","date":"3/2/2020","value":4.11},
+    {"symbol":"NIO","type":"price","date":"3/3/2020","value":4.06},
+    {"symbol":"NIO","type":"price","date":"3/4/2020","value":3.87},
+    {"symbol":"NIO","type":"price","date":"3/5/2020","value":3.72},
+    {"symbol":"NIO","type":"price","date":"3/6/2020","value":3.55},
+    {"symbol":"NIO","type":"price","date":"3/9/2020","value":3.29},
+    {"symbol":"NIO","type":"price","date":"3/10/2020","value":3.5},
+    {"symbol":"NIO","type":"price","date":"3/11/2020","value":3.32},
+    {"symbol":"NIO","type":"price","date":"3/12/2020","value":3.13},
+    {"symbol":"NIO","type":"price","date":"3/13/2020","value":3.11},
+    {"symbol":"NIO","type":"price","date":"3/16/2020","value":2.94},
+    {"symbol":"NIO","type":"price","date":"3/17/2020","value":2.9},
+    {"symbol":"NIO","type":"price","date":"3/18/2020","value":2.43},
+    {"symbol":"NIO","type":"price","date":"3/19/2020","value":2.38},
+    {"symbol":"NIO","type":"price","date":"3/20/2020","value":2.4},
+    {"symbol":"NIO","type":"price","date":"3/23/2020","value":2.37},
+    {"symbol":"NIO","type":"price","date":"3/24/2020","value":2.6},
+    {"symbol":"NIO","type":"price","date":"3/25/2020","value":2.76},
+    {"symbol":"NIO","type":"price","date":"3/26/2020","value":2.93},
+    {"symbol":"NIO","type":"price","date":"3/27/2020","value":2.84},
+    {"symbol":"NIO","type":"price","date":"3/30/2020","value":2.71},
+    {"symbol":"NIO","type":"price","date":"3/31/2020","value":2.78},
+    {"symbol":"NIO","type":"price","date":"4/1/2020","value":2.65},
+    {"symbol":"NIO","type":"price","date":"4/2/2020","value":2.39},
+    {"symbol":"NIO","type":"price","date":"4/3/2020","value":2.4},
+    {"symbol":"NIO","type":"price","date":"4/6/2020","value":2.47},
+    {"symbol":"NIO","type":"price","date":"4/7/2020","value":2.7},
+    {"symbol":"NIO","type":"price","date":"4/8/2020","value":2.74},
+    {"symbol":"NIO","type":"price","date":"4/9/2020","value":2.67},
+    {"symbol":"NIO","type":"price","date":"4/13/2020","value":2.97},
+    {"symbol":"NIO","type":"price","date":"4/14/2020","value":3.01},
+    {"symbol":"NIO","type":"price","date":"4/15/2020","value":3.2},
+    {"symbol":"NIO","type":"price","date":"4/16/2020","value":3.25},
+    {"symbol":"NIO","type":"price","date":"4/17/2020","value":3.21},
+    {"symbol":"NIO","type":"price","date":"4/20/2020","value":3.19},
+    {"symbol":"NIO","type":"price","date":"4/21/2020","value":3.02},
+    {"symbol":"NIO","type":"price","date":"4/22/2020","value":3.09},
+    {"symbol":"NIO","type":"price","date":"4/23/2020","value":3.06},
+    {"symbol":"NIO","type":"price","date":"4/24/2020","value":2.94},
+    {"symbol":"NIO","type":"price","date":"4/27/2020","value":3.24},
+    {"symbol":"NIO","type":"price","date":"4/28/2020","value":3.34},
+    {"symbol":"NIO","type":"price","date":"4/29/2020","value":3.61},
+    {"symbol":"NIO","type":"price","date":"4/30/2020","value":3.41},
+    {"symbol":"NIO","type":"price","date":"5/1/2020","value":3.18},
+    {"symbol":"NIO","type":"price","date":"5/4/2020","value":3.34},
+    {"symbol":"NIO","type":"price","date":"5/5/2020","value":3.28},
+    {"symbol":"NIO","type":"price","date":"5/6/2020","value":3.62},
+    {"symbol":"NIO","type":"price","date":"5/7/2020","value":3.63},
+    {"symbol":"NIO","type":"price","date":"5/8/2020","value":3.77},
+    {"symbol":"NIO","type":"price","date":"5/11/2020","value":3.74},
+    {"symbol":"NIO","type":"price","date":"5/12/2020","value":3.62},
+    {"symbol":"NIO","type":"price","date":"5/13/2020","value":3.44},
+    {"symbol":"NIO","type":"price","date":"5/14/2020","value":3.45},
+    {"symbol":"NIO","type":"price","date":"5/15/2020","value":3.37},
+    {"symbol":"NIO","type":"price","date":"5/18/2020","value":3.61},
+    {"symbol":"NIO","type":"price","date":"5/19/2020","value":3.69},
+    {"symbol":"NIO","type":"price","date":"5/20/2020","value":3.48},
+    {"symbol":"NIO","type":"price","date":"5/21/2020","value":3.33},
+    {"symbol":"NIO","type":"price","date":"5/22/2020","value":3.27},
+    {"symbol":"NIO","type":"price","date":"5/26/2020","value":3.82},
+    {"symbol":"NIO","type":"price","date":"5/27/2020","value":4.17},
+    {"symbol":"NIO","type":"price","date":"5/28/2020","value":3.83},
+    {"symbol":"NIO","type":"price","date":"5/29/2020","value":3.98},
+    {"symbol":"NIO","type":"price","date":"6/1/2020","value":4.26},
+    {"symbol":"NIO","type":"price","date":"6/2/2020","value":4.7},
+    {"symbol":"NIO","type":"price","date":"6/3/2020","value":5.6},
+    {"symbol":"NIO","type":"price","date":"6/4/2020","value":5.97},
+    {"symbol":"NIO","type":"price","date":"6/5/2020","value":5.59},
+    {"symbol":"NIO","type":"price","date":"6/8/2020","value":5.97},
+    {"symbol":"NIO","type":"price","date":"6/9/2020","value":6.68},
+    {"symbol":"NIO","type":"price","date":"6/10/2020","value":6.3},
+    {"symbol":"NIO","type":"price","date":"6/11/2020","value":5.91},
+    {"symbol":"NIO","type":"price","date":"6/12/2020","value":6.1},
+    {"symbol":"NIO","type":"price","date":"6/15/2020","value":6.83},
+    {"symbol":"NIO","type":"price","date":"6/16/2020","value":6.99},
+    {"symbol":"NIO","type":"price","date":"6/17/2020","value":6.84},
+    {"symbol":"NIO","type":"price","date":"6/18/2020","value":7.18},
+    {"symbol":"NIO","type":"price","date":"6/19/2020","value":7.34},
+    {"symbol":"NIO","type":"price","date":"6/22/2020","value":7.43},
+    {"symbol":"NIO","type":"price","date":"6/23/2020","value":7.23},
+    {"symbol":"NIO","type":"price","date":"6/24/2020","value":6.86},
+    {"symbol":"NIO","type":"price","date":"6/25/2020","value":7.08},
+    {"symbol":"NIO","type":"price","date":"6/26/2020","value":6.9},
+    {"symbol":"NIO","type":"price","date":"6/29/2020","value":7.23},
+    {"symbol":"NIO","type":"price","date":"6/30/2020","value":7.72},
+    {"symbol":"NIO","type":"price","date":"7/1/2020","value":7.91},
+    {"symbol":"NIO","type":"price","date":"7/2/2020","value":9.38},
+    {"symbol":"NIO","type":"price","date":"7/6/2020","value":11.51},
+    {"symbol":"NIO","type":"price","date":"7/7/2020","value":13.22},
+    {"symbol":"NIO","type":"price","date":"7/8/2020","value":12.88},
+    {"symbol":"NIO","type":"price","date":"7/9/2020","value":14.57},
+    {"symbol":"NIO","type":"price","date":"7/10/2020","value":14.98},
+    {"symbol":"NIO","type":"price","date":"7/13/2020","value":13.84},
+    {"symbol":"NIO","type":"price","date":"7/14/2020","value":14.09},
+    {"symbol":"NIO","type":"price","date":"7/15/2020","value":13.52},
+    {"symbol":"NIO","type":"price","date":"7/16/2020","value":12.94},
+    {"symbol":"NIO","type":"price","date":"7/17/2020","value":11.09},
+    {"symbol":"NIO","type":"price","date":"7/20/2020","value":12.82},
+    {"symbol":"NIO","type":"price","date":"7/21/2020","value":12.88},
+    {"symbol":"NIO","type":"price","date":"7/22/2020","value":12.38},
+    {"symbol":"NIO","type":"price","date":"7/23/2020","value":12.15},
+    {"symbol":"NIO","type":"price","date":"7/24/2020","value":11.82},
+    {"symbol":"NIO","type":"price","date":"7/27/2020","value":11.69},
+    {"symbol":"NIO","type":"price","date":"7/28/2020","value":12.27},
+    {"symbol":"NIO","type":"price","date":"7/29/2020","value":12.7},
+    {"symbol":"NIO","type":"price","date":"7/30/2020","value":12.2},
+    {"symbol":"NIO","type":"price","date":"7/31/2020","value":11.94},
+    {"symbol":"NIO","type":"price","date":"8/3/2020","value":13.6},
+    {"symbol":"NIO","type":"price","date":"8/4/2020","value":13.64},
+    {"symbol":"NIO","type":"price","date":"8/5/2020","value":13.92},
+    {"symbol":"NIO","type":"price","date":"8/6/2020","value":13.84},
+    {"symbol":"NIO","type":"price","date":"8/7/2020","value":13.42},
+    {"symbol":"NIO","type":"price","date":"8/10/2020","value":14.21},
+    {"symbol":"NIO","type":"price","date":"8/11/2020","value":12.99},
+    {"symbol":"NIO","type":"price","date":"8/12/2020","value":13.36},
+    {"symbol":"NIO","type":"price","date":"8/13/2020","value":13.36},
+    {"symbol":"NIO","type":"price","date":"8/14/2020","value":13.1},
+    {"symbol":"NIO","type":"price","date":"8/17/2020","value":14.05},
+    {"symbol":"NIO","type":"price","date":"8/18/2020","value":14.3},
+    {"symbol":"NIO","type":"price","date":"8/19/2020","value":14.06},
+    {"symbol":"NIO","type":"price","date":"8/20/2020","value":13.78},
+    {"symbol":"NIO","type":"price","date":"8/21/2020","value":14.12},
+    {"symbol":"NIO","type":"price","date":"8/24/2020","value":14.97},
+    {"symbol":"NIO","type":"price","date":"8/25/2020","value":17.84},
+    {"symbol":"NIO","type":"price","date":"8/26/2020","value":20.440001},
+    {"symbol":"NIO","type":"price","date":"8/27/2020","value":19.879999},
+    {"symbol":"NIO","type":"price","date":"8/28/2020","value":18.5},
+    {"symbol":"NIO","type":"price","date":"8/31/2020","value":19.030001},
+    {"symbol":"NIO","type":"price","date":"9/1/2020","value":20.120001},
+    {"symbol":"NIO","type":"price","date":"9/2/2020","value":19.9},
+    {"symbol":"NIO","type":"price","date":"9/3/2020","value":18.700001},
+    {"symbol":"NIO","type":"price","date":"9/4/2020","value":17.98},
+    {"symbol":"NIO","type":"price","date":"9/8/2020","value":17.030001},
+    {"symbol":"NIO","type":"price","date":"9/9/2020","value":18.09},
+    {"symbol":"NIO","type":"price","date":"9/10/2020","value":17.74},
+    {"symbol":"NIO","type":"price","date":"9/11/2020","value":17.969999},
+    {"symbol":"NIO","type":"price","date":"9/14/2020","value":18.73},
+    {"symbol":"NIO","type":"price","date":"9/15/2020","value":19.190001},
+    {"symbol":"NIO","type":"price","date":"9/16/2020","value":19.01},
+    {"symbol":"NIO","type":"price","date":"9/17/2020","value":19.299999},
+    {"symbol":"NIO","type":"price","date":"9/18/2020","value":19.41},
+    {"symbol":"NIO","type":"price","date":"9/21/2020","value":18.809999},
+    {"symbol":"NIO","type":"price","date":"9/22/2020","value":19.23},
+    {"symbol":"NIO","type":"price","date":"9/23/2020","value":17.959999},
+    {"symbol":"NIO","type":"price","date":"9/24/2020","value":17.85},
+    {"symbol":"NIO","type":"price","date":"9/25/2020","value":18.32},
+    {"symbol":"NIO","type":"price","date":"9/28/2020","value":18.809999},
+    {"symbol":"NIO","type":"price","date":"9/29/2020","value":20.85},
+    {"symbol":"NIO","type":"price","date":"9/30/2020","value":21.219999},
+    {"symbol":"NIO","type":"price","date":"10/1/2020","value":21.76},
+    {"symbol":"NIO","type":"price","date":"10/2/2020","value":21.18},
+    {"symbol":"NIO","type":"price","date":"10/5/2020","value":21.59},
+    {"symbol":"NIO","type":"price","date":"10/6/2020","value":20.67},
+    {"symbol":"NIO","type":"price","date":"10/7/2020","value":21.559999},
+    {"symbol":"NIO","type":"price","date":"10/8/2020","value":21.440001},
+    {"symbol":"NIO","type":"price","date":"10/9/2020","value":21.469999},
+    {"symbol":"NIO","type":"price","date":"10/12/2020","value":21.85},
+    {"symbol":"NIO","type":"price","date":"10/13/2020","value":21.620001},
+    {"symbol":"NIO","type":"price","date":"10/14/2020","value":26.5},
+    {"symbol":"NIO","type":"price","date":"10/15/2020","value":28.07},
+    {"symbol":"NIO","type":"price","date":"10/16/2020","value":28.48},
+    {"symbol":"NIO","type":"price","date":"10/19/2020","value":27.629999},
+    {"symbol":"NIO","type":"price","date":"10/20/2020","value":27.959999},
+    {"symbol":"NIO","type":"price","date":"10/21/2020","value":27.860001},
+    {"symbol":"NIO","type":"price","date":"10/22/2020","value":27.379999},
+    {"symbol":"NIO","type":"price","date":"10/23/2020","value":27.16},
+    {"symbol":"NIO","type":"price","date":"10/26/2020","value":26.01},
+    {"symbol":"NIO","type":"price","date":"10/27/2020","value":28.440001},
+    {"symbol":"NIO","type":"price","date":"10/28/2020","value":27.51},
+    {"symbol":"NIO","type":"price","date":"10/29/2020","value":31.99},
+    {"symbol":"NIO","type":"price","date":"10/30/2020","value":30.58},
+    {"symbol":"NIO","type":"price","date":"11/2/2020","value":33.32},
+    {"symbol":"NIO","type":"price","date":"11/3/2020","value":35.5},
+    {"symbol":"NIO","type":"price","date":"11/4/2020","value":37.709999},
+    {"symbol":"NIO","type":"price","date":"11/5/2020","value":42.349998},
+    {"symbol":"NIO","type":"price","date":"11/6/2020","value":41.630001},
+    {"symbol":"NIO","type":"price","date":"11/9/2020","value":44.02},
+    {"symbol":"NIO","type":"price","date":"11/10/2020","value":41.549999},
+    {"symbol":"NIO","type":"price","date":"11/11/2020","value":43.080002},
+    {"symbol":"NIO","type":"price","date":"11/12/2020","value":48.299999},
+    {"symbol":"NIO","type":"price","date":"11/13/2020","value":44.560001},
+    {"symbol":"NIO","type":"price","date":"11/16/2020","value":45.580002},
+    {"symbol":"NIO","type":"price","date":"11/17/2020","value":46.59},
+    {"symbol":"NIO","type":"price","date":"11/18/2020","value":45.060001},
+    {"symbol":"NIO","type":"price","date":"11/19/2020","value":48.450001},
+    {"symbol":"NIO","type":"price","date":"11/20/2020","value":49.25},
+    {"symbol":"NIO","type":"price","date":"11/23/2020","value":55.380001},
+    {"symbol":"NIO","type":"price","date":"11/24/2020","value":53.509998},
+    {"symbol":"NIO","type":"price","date":"11/25/2020","value":53.689999},
+    {"symbol":"NIO","type":"price","date":"11/27/2020","value":54.0},
+    {"symbol":"NIO","type":"price","date":"11/30/2020","value":50.529999},
+    {"symbol":"NIO","type":"price","date":"12/1/2020","value":45.360001},
+    {"symbol":"NIO","type":"price","date":"12/2/2020","value":47.98},
+    {"symbol":"NIO","type":"price","date":"12/3/2020","value":45.349998},
+    {"symbol":"NIO","type":"price","date":"12/4/2020","value":43.040001},
+    {"symbol":"NIO","type":"price","date":"12/7/2020","value":45.110001},
+    {"symbol":"NIO","type":"price","date":"12/8/2020","value":46.560001},
+    {"symbol":"NIO","type":"price","date":"12/9/2020","value":44.009998},
+    {"symbol":"NIO","type":"price","date":"12/10/2020","value":45.220001},
+    {"symbol":"NIO","type":"price","date":"12/11/2020","value":41.98},
+    {"symbol":"NIO","type":"price","date":"12/14/2020","value":40.98},
+    {"symbol":"NIO","type":"price","date":"12/15/2020","value":43.5},
+    {"symbol":"NIO","type":"price","date":"12/16/2020","value":44.669998},
+    {"symbol":"NIO","type":"price","date":"12/17/2020","value":46.0},
+    {"symbol":"NIO","type":"price","date":"12/18/2020","value":46.720001},
+    {"symbol":"NIO","type":"price","date":"12/21/2020","value":48.950001},
+    {"symbol":"NIO","type":"price","date":"12/22/2020","value":47.580002},
+    {"symbol":"NIO","type":"price","date":"12/23/2020","value":47.009998},
+    {"symbol":"NIO","type":"price","date":"12/24/2020","value":45.77},
+    {"symbol":"NIO","type":"price","date":"12/28/2020","value":44.060001},
+    {"symbol":"NIO","type":"price","date":"12/29/2020","value":46.139999},
+    {"symbol":"NIO","type":"price","date":"12/30/2020","value":48.380001},
+    {"symbol":"NIO","type":"price","date":"12/31/2020","value":48.740002},
+  ]
+  let NIOPrice = new Data("NIO","price",dataNIOPrice);
 
-
+  let dataNIOVolumn = [
+    {"symbol":"NIO","type":"volumn","date":"12/31/2019","value":215008600},
+    {"symbol":"NIO","type":"volumn","date":"1/2/2020","value":103740100},
+    {"symbol":"NIO","type":"volumn","date":"1/3/2020","value":82892400},
+    {"symbol":"NIO","type":"volumn","date":"1/6/2020","value":106619700},
+    {"symbol":"NIO","type":"volumn","date":"1/7/2020","value":106336400},
+    {"symbol":"NIO","type":"volumn","date":"1/8/2020","value":65118100},
+    {"symbol":"NIO","type":"volumn","date":"1/9/2020","value":54644200},
+    {"symbol":"NIO","type":"volumn","date":"1/10/2020","value":35626700},
+    {"symbol":"NIO","type":"volumn","date":"1/13/2020","value":59752700},
+    {"symbol":"NIO","type":"volumn","date":"1/14/2020","value":55194000},
+    {"symbol":"NIO","type":"volumn","date":"1/15/2020","value":236357900},
+    {"symbol":"NIO","type":"volumn","date":"1/16/2020","value":97941700},
+    {"symbol":"NIO","type":"volumn","date":"1/17/2020","value":109601300},
+    {"symbol":"NIO","type":"volumn","date":"1/21/2020","value":181423600},
+    {"symbol":"NIO","type":"volumn","date":"1/22/2020","value":207132700},
+    {"symbol":"NIO","type":"volumn","date":"1/23/2020","value":102535300},
+    {"symbol":"NIO","type":"volumn","date":"1/24/2020","value":65538000},
+    {"symbol":"NIO","type":"volumn","date":"1/27/2020","value":102028700},
+    {"symbol":"NIO","type":"volumn","date":"1/28/2020","value":48979100},
+    {"symbol":"NIO","type":"volumn","date":"1/29/2020","value":53844300},
+    {"symbol":"NIO","type":"volumn","date":"1/30/2020","value":75009800},
+    {"symbol":"NIO","type":"volumn","date":"1/31/2020","value":77923200},
+    {"symbol":"NIO","type":"volumn","date":"2/3/2020","value":73783600},
+    {"symbol":"NIO","type":"volumn","date":"2/4/2020","value":123640400},
+    {"symbol":"NIO","type":"volumn","date":"2/5/2020","value":73632500},
+    {"symbol":"NIO","type":"volumn","date":"2/6/2020","value":75641200},
+    {"symbol":"NIO","type":"volumn","date":"2/7/2020","value":80780700},
+    {"symbol":"NIO","type":"volumn","date":"2/10/2020","value":67157700},
+    {"symbol":"NIO","type":"volumn","date":"2/11/2020","value":54097100},
+    {"symbol":"NIO","type":"volumn","date":"2/12/2020","value":50975300},
+    {"symbol":"NIO","type":"volumn","date":"2/13/2020","value":42411200},
+    {"symbol":"NIO","type":"volumn","date":"2/14/2020","value":69655600},
+    {"symbol":"NIO","type":"volumn","date":"2/18/2020","value":47700900},
+    {"symbol":"NIO","type":"volumn","date":"2/19/2020","value":73256300},
+    {"symbol":"NIO","type":"volumn","date":"2/20/2020","value":86873500},
+    {"symbol":"NIO","type":"volumn","date":"2/21/2020","value":40425900},
+    {"symbol":"NIO","type":"volumn","date":"2/24/2020","value":56247100},
+    {"symbol":"NIO","type":"volumn","date":"2/25/2020","value":206259400},
+    {"symbol":"NIO","type":"volumn","date":"2/26/2020","value":69558500},
+    {"symbol":"NIO","type":"volumn","date":"2/27/2020","value":77846700},
+    {"symbol":"NIO","type":"volumn","date":"2/28/2020","value":63635600},
+    {"symbol":"NIO","type":"volumn","date":"3/2/2020","value":56063200},
+    {"symbol":"NIO","type":"volumn","date":"3/3/2020","value":47644500},
+    {"symbol":"NIO","type":"volumn","date":"3/4/2020","value":49465800},
+    {"symbol":"NIO","type":"volumn","date":"3/5/2020","value":72697800},
+    {"symbol":"NIO","type":"volumn","date":"3/6/2020","value":61238100},
+    {"symbol":"NIO","type":"volumn","date":"3/9/2020","value":55305300},
+    {"symbol":"NIO","type":"volumn","date":"3/10/2020","value":34928400},
+    {"symbol":"NIO","type":"volumn","date":"3/11/2020","value":31099400},
+    {"symbol":"NIO","type":"volumn","date":"3/12/2020","value":52438300},
+    {"symbol":"NIO","type":"volumn","date":"3/13/2020","value":41770400},
+    {"symbol":"NIO","type":"volumn","date":"3/16/2020","value":41266200},
+    {"symbol":"NIO","type":"volumn","date":"3/17/2020","value":34862200},
+    {"symbol":"NIO","type":"volumn","date":"3/18/2020","value":94431900},
+    {"symbol":"NIO","type":"volumn","date":"3/19/2020","value":35499000},
+    {"symbol":"NIO","type":"volumn","date":"3/20/2020","value":50528400},
+    {"symbol":"NIO","type":"volumn","date":"3/23/2020","value":47435200},
+    {"symbol":"NIO","type":"volumn","date":"3/24/2020","value":64750100},
+    {"symbol":"NIO","type":"volumn","date":"3/25/2020","value":56588300},
+    {"symbol":"NIO","type":"volumn","date":"3/26/2020","value":43579400},
+    {"symbol":"NIO","type":"volumn","date":"3/27/2020","value":25132000},
+    {"symbol":"NIO","type":"volumn","date":"3/30/2020","value":20115300},
+    {"symbol":"NIO","type":"volumn","date":"3/31/2020","value":30261400},
+    {"symbol":"NIO","type":"volumn","date":"4/1/2020","value":17153800},
+    {"symbol":"NIO","type":"volumn","date":"4/2/2020","value":58942700},
+    {"symbol":"NIO","type":"volumn","date":"4/3/2020","value":19519500},
+    {"symbol":"NIO","type":"volumn","date":"4/6/2020","value":34866700},
+    {"symbol":"NIO","type":"volumn","date":"4/7/2020","value":46149600},
+    {"symbol":"NIO","type":"volumn","date":"4/8/2020","value":18312900},
+    {"symbol":"NIO","type":"volumn","date":"4/9/2020","value":32810000},
+    {"symbol":"NIO","type":"volumn","date":"4/13/2020","value":38421700},
+    {"symbol":"NIO","type":"volumn","date":"4/14/2020","value":36479000},
+    {"symbol":"NIO","type":"volumn","date":"4/15/2020","value":27529800},
+    {"symbol":"NIO","type":"volumn","date":"4/16/2020","value":37801700},
+    {"symbol":"NIO","type":"volumn","date":"4/17/2020","value":22831800},
+    {"symbol":"NIO","type":"volumn","date":"4/20/2020","value":18691700},
+    {"symbol":"NIO","type":"volumn","date":"4/21/2020","value":19789700},
+    {"symbol":"NIO","type":"volumn","date":"4/22/2020","value":14494000},
+    {"symbol":"NIO","type":"volumn","date":"4/23/2020","value":17434200},
+    {"symbol":"NIO","type":"volumn","date":"4/24/2020","value":22069700},
+    {"symbol":"NIO","type":"volumn","date":"4/27/2020","value":35641100},
+    {"symbol":"NIO","type":"volumn","date":"4/28/2020","value":36326800},
+    {"symbol":"NIO","type":"volumn","date":"4/29/2020","value":89238800},
+    {"symbol":"NIO","type":"volumn","date":"4/30/2020","value":44540400},
+    {"symbol":"NIO","type":"volumn","date":"5/1/2020","value":31268900},
+    {"symbol":"NIO","type":"volumn","date":"5/4/2020","value":23387500},
+    {"symbol":"NIO","type":"volumn","date":"5/5/2020","value":22315800},
+    {"symbol":"NIO","type":"volumn","date":"5/6/2020","value":54347800},
+    {"symbol":"NIO","type":"volumn","date":"5/7/2020","value":26736700},
+    {"symbol":"NIO","type":"volumn","date":"5/8/2020","value":27638000},
+    {"symbol":"NIO","type":"volumn","date":"5/11/2020","value":16585600},
+    {"symbol":"NIO","type":"volumn","date":"5/12/2020","value":21943800},
+    {"symbol":"NIO","type":"volumn","date":"5/13/2020","value":34034700},
+    {"symbol":"NIO","type":"volumn","date":"5/14/2020","value":20936400},
+    {"symbol":"NIO","type":"volumn","date":"5/15/2020","value":13699000},
+    {"symbol":"NIO","type":"volumn","date":"5/18/2020","value":27771300},
+    {"symbol":"NIO","type":"volumn","date":"5/19/2020","value":21707400},
+    {"symbol":"NIO","type":"volumn","date":"5/20/2020","value":52056900},
+    {"symbol":"NIO","type":"volumn","date":"5/21/2020","value":41628400},
+    {"symbol":"NIO","type":"volumn","date":"5/22/2020","value":22887300},
+    {"symbol":"NIO","type":"volumn","date":"5/26/2020","value":59847900},
+    {"symbol":"NIO","type":"volumn","date":"5/27/2020","value":70718900},
+    {"symbol":"NIO","type":"volumn","date":"5/28/2020","value":62756900},
+    {"symbol":"NIO","type":"volumn","date":"5/29/2020","value":50303000},
+    {"symbol":"NIO","type":"volumn","date":"6/1/2020","value":69222000},
+    {"symbol":"NIO","type":"volumn","date":"6/2/2020","value":82476600},
+    {"symbol":"NIO","type":"volumn","date":"6/3/2020","value":199210000},
+    {"symbol":"NIO","type":"volumn","date":"6/4/2020","value":173052600},
+    {"symbol":"NIO","type":"volumn","date":"6/5/2020","value":90811800},
+    {"symbol":"NIO","type":"volumn","date":"6/8/2020","value":85951600},
+    {"symbol":"NIO","type":"volumn","date":"6/9/2020","value":136907900},
+    {"symbol":"NIO","type":"volumn","date":"6/10/2020","value":100170700},
+    {"symbol":"NIO","type":"volumn","date":"6/11/2020","value":126509700},
+    {"symbol":"NIO","type":"volumn","date":"6/12/2020","value":59838800},
+    {"symbol":"NIO","type":"volumn","date":"6/15/2020","value":113694400},
+    {"symbol":"NIO","type":"volumn","date":"6/16/2020","value":130478600},
+    {"symbol":"NIO","type":"volumn","date":"6/17/2020","value":58927300},
+    {"symbol":"NIO","type":"volumn","date":"6/18/2020","value":78846400},
+    {"symbol":"NIO","type":"volumn","date":"6/19/2020","value":84604200},
+    {"symbol":"NIO","type":"volumn","date":"6/22/2020","value":112976000},
+    {"symbol":"NIO","type":"volumn","date":"6/23/2020","value":79863500},
+    {"symbol":"NIO","type":"volumn","date":"6/24/2020","value":103888600},
+    {"symbol":"NIO","type":"volumn","date":"6/25/2020","value":46660300},
+    {"symbol":"NIO","type":"volumn","date":"6/26/2020","value":33596800},
+    {"symbol":"NIO","type":"volumn","date":"6/29/2020","value":46070400},
+    {"symbol":"NIO","type":"volumn","date":"6/30/2020","value":84485500},
+    {"symbol":"NIO","type":"volumn","date":"7/1/2020","value":64842600},
+    {"symbol":"NIO","type":"volumn","date":"7/2/2020","value":221496700},
+    {"symbol":"NIO","type":"volumn","date":"7/6/2020","value":329223800},
+    {"symbol":"NIO","type":"volumn","date":"7/7/2020","value":444070500},
+    {"symbol":"NIO","type":"volumn","date":"7/8/2020","value":570911400},
+    {"symbol":"NIO","type":"volumn","date":"7/9/2020","value":316792000},
+    {"symbol":"NIO","type":"volumn","date":"7/10/2020","value":318851300},
+    {"symbol":"NIO","type":"volumn","date":"7/13/2020","value":313460300},
+    {"symbol":"NIO","type":"volumn","date":"7/14/2020","value":196123200},
+    {"symbol":"NIO","type":"volumn","date":"7/15/2020","value":114603700},
+    {"symbol":"NIO","type":"volumn","date":"7/16/2020","value":134606300},
+    {"symbol":"NIO","type":"volumn","date":"7/17/2020","value":289518000},
+    {"symbol":"NIO","type":"volumn","date":"7/20/2020","value":155428100},
+    {"symbol":"NIO","type":"volumn","date":"7/21/2020","value":128036000},
+    {"symbol":"NIO","type":"volumn","date":"7/22/2020","value":112260500},
+    {"symbol":"NIO","type":"volumn","date":"7/23/2020","value":95206300},
+    {"symbol":"NIO","type":"volumn","date":"7/24/2020","value":93425300},
+    {"symbol":"NIO","type":"volumn","date":"7/27/2020","value":64068500},
+    {"symbol":"NIO","type":"volumn","date":"7/28/2020","value":90075800},
+    {"symbol":"NIO","type":"volumn","date":"7/29/2020","value":69552600},
+    {"symbol":"NIO","type":"volumn","date":"7/30/2020","value":64952900},
+    {"symbol":"NIO","type":"volumn","date":"7/31/2020","value":61620400},
+    {"symbol":"NIO","type":"volumn","date":"8/3/2020","value":122925300},
+    {"symbol":"NIO","type":"volumn","date":"8/4/2020","value":125731400},
+    {"symbol":"NIO","type":"volumn","date":"8/5/2020","value":60046000},
+    {"symbol":"NIO","type":"volumn","date":"8/6/2020","value":49787700},
+    {"symbol":"NIO","type":"volumn","date":"8/7/2020","value":57746000},
+    {"symbol":"NIO","type":"volumn","date":"8/10/2020","value":84267300},
+    {"symbol":"NIO","type":"volumn","date":"8/11/2020","value":181311500},
+    {"symbol":"NIO","type":"volumn","date":"8/12/2020","value":77260200},
+    {"symbol":"NIO","type":"volumn","date":"8/13/2020","value":50093500},
+    {"symbol":"NIO","type":"volumn","date":"8/14/2020","value":63250700},
+    {"symbol":"NIO","type":"volumn","date":"8/17/2020","value":78340500},
+    {"symbol":"NIO","type":"volumn","date":"8/18/2020","value":69962400},
+    {"symbol":"NIO","type":"volumn","date":"8/19/2020","value":41966800},
+    {"symbol":"NIO","type":"volumn","date":"8/20/2020","value":50072800},
+    {"symbol":"NIO","type":"volumn","date":"8/21/2020","value":70189900},
+    {"symbol":"NIO","type":"volumn","date":"8/24/2020","value":98697700},
+    {"symbol":"NIO","type":"volumn","date":"8/25/2020","value":299047800},
+    {"symbol":"NIO","type":"volumn","date":"8/26/2020","value":364104600},
+    {"symbol":"NIO","type":"volumn","date":"8/27/2020","value":199850300},
+    {"symbol":"NIO","type":"volumn","date":"8/28/2020","value":154799800},
+    {"symbol":"NIO","type":"volumn","date":"8/31/2020","value":226610900},
+    {"symbol":"NIO","type":"volumn","date":"9/1/2020","value":137226000},
+    {"symbol":"NIO","type":"volumn","date":"9/2/2020","value":153460600},
+    {"symbol":"NIO","type":"volumn","date":"9/3/2020","value":128358400},
+    {"symbol":"NIO","type":"volumn","date":"9/4/2020","value":163329800},
+    {"symbol":"NIO","type":"volumn","date":"9/8/2020","value":89624600},
+    {"symbol":"NIO","type":"volumn","date":"9/9/2020","value":90988400},
+    {"symbol":"NIO","type":"volumn","date":"9/10/2020","value":79679800},
+    {"symbol":"NIO","type":"volumn","date":"9/11/2020","value":55373500},
+    {"symbol":"NIO","type":"volumn","date":"9/14/2020","value":68234900},
+    {"symbol":"NIO","type":"volumn","date":"9/15/2020","value":111630500},
+    {"symbol":"NIO","type":"volumn","date":"9/16/2020","value":57671000},
+    {"symbol":"NIO","type":"volumn","date":"9/17/2020","value":55186600},
+    {"symbol":"NIO","type":"volumn","date":"9/18/2020","value":54885500},
+    {"symbol":"NIO","type":"volumn","date":"9/21/2020","value":75969500},
+    {"symbol":"NIO","type":"volumn","date":"9/22/2020","value":61061100},
+    {"symbol":"NIO","type":"volumn","date":"9/23/2020","value":70568100},
+    {"symbol":"NIO","type":"volumn","date":"9/24/2020","value":71069500},
+    {"symbol":"NIO","type":"volumn","date":"9/25/2020","value":44122100},
+    {"symbol":"NIO","type":"volumn","date":"9/28/2020","value":42786200},
+    {"symbol":"NIO","type":"volumn","date":"9/29/2020","value":163159200},
+    {"symbol":"NIO","type":"volumn","date":"9/30/2020","value":183530500},
+    {"symbol":"NIO","type":"volumn","date":"10/1/2020","value":79117100},
+    {"symbol":"NIO","type":"volumn","date":"10/2/2020","value":92713600},
+    {"symbol":"NIO","type":"volumn","date":"10/5/2020","value":60860100},
+    {"symbol":"NIO","type":"volumn","date":"10/6/2020","value":73217100},
+    {"symbol":"NIO","type":"volumn","date":"10/7/2020","value":59354300},
+    {"symbol":"NIO","type":"volumn","date":"10/8/2020","value":77719600},
+    {"symbol":"NIO","type":"volumn","date":"10/9/2020","value":37329000},
+    {"symbol":"NIO","type":"volumn","date":"10/12/2020","value":45476800},
+    {"symbol":"NIO","type":"volumn","date":"10/13/2020","value":42581500},
+    {"symbol":"NIO","type":"volumn","date":"10/14/2020","value":382663200},
+    {"symbol":"NIO","type":"volumn","date":"10/15/2020","value":385210600},
+    {"symbol":"NIO","type":"volumn","date":"10/16/2020","value":186764700},
+    {"symbol":"NIO","type":"volumn","date":"10/19/2020","value":115708700},
+    {"symbol":"NIO","type":"volumn","date":"10/20/2020","value":105233400},
+    {"symbol":"NIO","type":"volumn","date":"10/21/2020","value":65357900},
+    {"symbol":"NIO","type":"volumn","date":"10/22/2020","value":72173300},
+    {"symbol":"NIO","type":"volumn","date":"10/23/2020","value":51784000},
+    {"symbol":"NIO","type":"volumn","date":"10/26/2020","value":72610300},
+    {"symbol":"NIO","type":"volumn","date":"10/27/2020","value":104257700},
+    {"symbol":"NIO","type":"volumn","date":"10/28/2020","value":89374900},
+    {"symbol":"NIO","type":"volumn","date":"10/29/2020","value":214034700},
+    {"symbol":"NIO","type":"volumn","date":"10/30/2020","value":136607400},
+    {"symbol":"NIO","type":"volumn","date":"11/2/2020","value":265719900},
+    {"symbol":"NIO","type":"volumn","date":"11/3/2020","value":217608100},
+    {"symbol":"NIO","type":"volumn","date":"11/4/2020","value":339385900},
+    {"symbol":"NIO","type":"volumn","date":"11/5/2020","value":302472600},
+    {"symbol":"NIO","type":"volumn","date":"11/6/2020","value":288784300},
+    {"symbol":"NIO","type":"volumn","date":"11/9/2020","value":218733300},
+    {"symbol":"NIO","type":"volumn","date":"11/10/2020","value":237403600},
+    {"symbol":"NIO","type":"volumn","date":"11/11/2020","value":179581200},
+    {"symbol":"NIO","type":"volumn","date":"11/12/2020","value":345932900},
+    {"symbol":"NIO","type":"volumn","date":"11/13/2020","value":577185100},
+    {"symbol":"NIO","type":"volumn","date":"11/16/2020","value":306209100},
+    {"symbol":"NIO","type":"volumn","date":"11/17/2020","value":345578500},
+    {"symbol":"NIO","type":"volumn","date":"11/18/2020","value":271678300},
+    {"symbol":"NIO","type":"volumn","date":"11/19/2020","value":233779100},
+    {"symbol":"NIO","type":"volumn","date":"11/20/2020","value":209106300},
+    {"symbol":"NIO","type":"volumn","date":"11/23/2020","value":270203000},
+    {"symbol":"NIO","type":"volumn","date":"11/24/2020","value":243669700},
+    {"symbol":"NIO","type":"volumn","date":"11/25/2020","value":204508500},
+    {"symbol":"NIO","type":"volumn","date":"11/27/2020","value":105795100},
+    {"symbol":"NIO","type":"volumn","date":"11/30/2020","value":179765400},
+    {"symbol":"NIO","type":"volumn","date":"12/1/2020","value":248227000},
+    {"symbol":"NIO","type":"volumn","date":"12/2/2020","value":313028300},
+    {"symbol":"NIO","type":"volumn","date":"12/3/2020","value":173424000},
+    {"symbol":"NIO","type":"volumn","date":"12/4/2020","value":191969900},
+    {"symbol":"NIO","type":"volumn","date":"12/7/2020","value":165048500},
+    {"symbol":"NIO","type":"volumn","date":"12/8/2020","value":115799600},
+    {"symbol":"NIO","type":"volumn","date":"12/9/2020","value":121387900},
+    {"symbol":"NIO","type":"volumn","date":"12/10/2020","value":107376800},
+    {"symbol":"NIO","type":"volumn","date":"12/11/2020","value":147076100},
+    {"symbol":"NIO","type":"volumn","date":"12/14/2020","value":171598200},
+    {"symbol":"NIO","type":"volumn","date":"12/15/2020","value":132336900},
+    {"symbol":"NIO","type":"volumn","date":"12/16/2020","value":120109600},
+    {"symbol":"NIO","type":"volumn","date":"12/17/2020","value":130003700},
+    {"symbol":"NIO","type":"volumn","date":"12/18/2020","value":126251100},
+    {"symbol":"NIO","type":"volumn","date":"12/21/2020","value":132558100},
+    {"symbol":"NIO","type":"volumn","date":"12/22/2020","value":117118300},
+    {"symbol":"NIO","type":"volumn","date":"12/23/2020","value":81247900},
+    {"symbol":"NIO","type":"volumn","date":"12/24/2020","value":60582500},
+    {"symbol":"NIO","type":"volumn","date":"12/28/2020","value":105078000},
+    {"symbol":"NIO","type":"volumn","date":"12/29/2020","value":120689900},
+    {"symbol":"NIO","type":"volumn","date":"12/30/2020","value":116691700},
+    {"symbol":"NIO","type":"volumn","date":"12/31/2020","value":129344300},
+  ]
+  let NIOVolumn = new Data("NIO","volumn",dataNIOVolumn);
 
   let dataTeslaRevenue =  [{"symbol":"TSLA","type":"Total Revenue","date":"12/31/2019","value":7384000},
                           {"symbol":"TSLA","type":"Total Revenue","date":"3/31/2020","value":5985000},
@@ -2009,6 +2523,78 @@ class Storage extends Visualization{
   let FProfit = new Data("F","Gross Profit",dataFProfit);
 
 
+  let dataNIORevenue =  [{"symbol":"NIO","type":"Total Revenue","date":"12/31/2019","value":2848329},
+                        {"symbol":"NIO","type":"Total Revenue","date":"3/31/2020","value":1371952},
+                        {"symbol":"NIO","type":"Total Revenue","date":"6/30/2020","value":3718930},
+                        {"symbol":"NIO","type":"Total Revenue","date":"9/30/2020","value":4525960},
+                        {"symbol":"NIO","type":"Total Revenue","date":"12/31/2020","value":6641091},];
+
+
+  let NIORevenue = new Data("NIO","Total Revenue",dataNIORevenue);
+
+  let dataNIOCost = [{"symbol":"NIO","type":"Cost of Revenue","date":"12/31/2019","value":3102082},
+                      {"symbol":"NIO","type":"Cost of Revenue","date":"3/31/2020","value":1539431},
+                      {"symbol":"NIO","type":"Cost of Revenue","date":"6/30/2020","value":3405789},
+                      {"symbol":"NIO","type":"Cost of Revenue","date":"9/30/2020","value":3940148},
+                      {"symbol":"NIO","type":"Cost of Revenue","date":"12/31/2020","value":5499146},]
+  let NIOCost = new Data("NIO","Cost of Revenue",dataNIOCost);
+
+  let dataNIODebt =  [{"symbol":"NIO","type":"Total Debt","date":"12/31/2019","value":10699097},
+                      {"symbol":"NIO","type":"Total Debt","date":"3/31/2020","value":13563789},
+                      {"symbol":"NIO","type":"Total Debt","date":"6/30/2020","value":13221546},
+                      {"symbol":"NIO","type":"Total Debt","date":"9/30/2020","value":9832912},
+                      {"symbol":"NIO","type":"Total Debt","date":"12/31/2020","value":9431242},]
+  let NIODebt = new Data("NIO","Total Debt",dataNIODebt);
+
+  let dataNIOCap = [{"symbol":"NIO","type":"Total Capitalization","date":"12/31/2019","value":855112},
+                    {"symbol":"NIO","type":"Total Capitalization","date":"3/31/2020","value":-854969},
+                    {"symbol":"NIO","type":"Total Capitalization","date":"6/30/2020","value":1257770},
+                    {"symbol":"NIO","type":"Total Capitalization","date":"9/30/2020","value":14787171},
+                    {"symbol":"NIO","type":"Total Capitalization","date":"12/31/2020","value":33107110},]
+  let NIOCap = new Data("NIO","Total Capitalization",dataNIOCap);
+
+  let dataNIOEquity = [{"symbol":"NIO","type":"Total Equity","date":"12/31/2019","value":-6277599},
+                        {"symbol":"NIO","type":"Total Equity","date":"3/31/2020","value":-8046571},
+                        {"symbol":"NIO","type":"Total Equity","date":"6/30/2020","value":-5788693},
+                        {"symbol":"NIO","type":"Total Equity","date":"9/30/2020","value":8026652},
+                        {"symbol":"NIO","type":"Total Equity","date":"12/31/2020","value":27170956},]
+  let NIOEquity = new Data("NIO","Total Equity",dataNIOEquity);
+
+  let dataNIOLiabilities = [{"symbol":"NIO","type":"Total Liabilities","date":"12/31/2019","value":20859628},
+                            {"symbol":"NIO","type":"Total Liabilities","date":"3/31/2020","value":23383745},
+                            {"symbol":"NIO","type":"Total Liabilities","date":"6/30/2020","value":28939369},
+                            {"symbol":"NIO","type":"Total Liabilities","date":"9/30/2020","value":26366458},
+                            {"symbol":"NIO","type":"Total Liabilities","date":"12/31/2020","value":27470973},]
+  let NIOLiabilities = new Data("NIO","Total Liabilities",dataNIOLiabilities);
+
+  let dataNIOAssets = [{"symbol":"NIO","type":"Total Assets","date":"12/31/2019","value":14582029},
+                        {"symbol":"NIO","type":"Total Assets","date":"3/31/2020","value":15337174},
+                        {"symbol":"NIO","type":"Total Assets","date":"6/30/2020","value":23150676},
+                        {"symbol":"NIO","type":"Total Assets","date":"9/30/2020","value":34393110},
+                        {"symbol":"NIO","type":"Total Assets","date":"12/31/2020","value":54641929},]
+  let NIOAssets = new Data("NIO","Total Assets",dataNIOAssets);
+
+  let dataNIOIncome = [{"symbol":"NIO","type":"Operating Income","date":"12/31/2019","value":-2826176},
+                          {"symbol":"NIO","type":"Operating Income","date":"3/31/2020","value":-1570268},
+                          {"symbol":"NIO","type":"Operating Income","date":"6/30/2020","value":-1160003},
+                          {"symbol":"NIO","type":"Operating Income","date":"9/30/2020","value":-945988},
+                          {"symbol":"NIO","type":"Operating Income","date":"12/31/2020","value":-931386},]
+  let NIOIncome = new Data("NIO","Operating Income",dataNIOIncome);
+
+  let dataNIOExpense = [{"symbol":"NIO","type":"Operating Expense","date":"12/31/2019","value":2572423},
+                          {"symbol":"NIO","type":"Operating Expense","date":"3/31/2020","value":1402789},
+                          {"symbol":"NIO","type":"Operating Expense","date":"6/30/2020","value":1473144},
+                          {"symbol":"NIO","type":"Operating Expense","date":"9/30/2020","value":1531800},
+                          {"symbol":"NIO","type":"Operating Expense","date":"12/31/2020","value":2073331},]
+  let NIOExpense = new Data("NIO","Operating Expense",dataNIOExpense);
+
+  let dataNIOProfit = [{"symbol":"NIO","type":"Gross Profit","date":"12/31/2019","value":-253753},
+                        {"symbol":"NIO","type":"Gross Profit","date":"3/31/2020","value":-167479},
+                        {"symbol":"NIO","type":"Gross Profit","date":"6/30/2020","value":313141},
+                        {"symbol":"NIO","type":"Gross Profit","date":"9/30/2020","value":585812},
+                        {"symbol":"NIO","type":"Gross Profit","date":"12/31/2020","value":1141945},]
+  let NIOProfit = new Data("NIO","Gross Profit",dataNIOProfit);
+
   let l = new Linechart()
   visualizations.push(l)
   l.addData(TSLAVolumn)
@@ -2020,6 +2606,18 @@ class Storage extends Visualization{
   lp.addData(TSLAPrice)
   lp.addData(FPrice)
   lp.plot()
+
+  let b = new Barchart()
+  visualizations.push(b)
+  // b.addData(TSLARevenue)
+  // b.addData(TeslaCost)
+  b.plot()
+
+  let bp = new BarPercentagechart()
+  visualizations.push(bp)
+  // b.addData(TSLARevenue)
+  // b.addData(TeslaCost)
+  bp.plot()
 
   let t = new Table()
   visualizations.push(t)
@@ -2033,30 +2631,40 @@ class Storage extends Visualization{
   t.addData(TeslaIncome)
   t.addData(TeslaExpense)
   t.addData(TeslaProfit)
-  t.addData(FRevenue)
-  t.addData(FCost)
-  t.addData(FDebt)
-  t.addData(FCap)
-  t.addData(FLiabilities)
-  t.addData(FEquity)
-  t.addData(FAssets)
-  t.addData(FIncome)
-  t.addData(FExpense)
-  t.addData(FProfit)
+
 
   t.plot()
 
-  let b = new Barchart()
-  visualizations.push(b)
-  // b.addData(TSLARevenue)
-  // b.addData(TeslaCost)
-  b.plot()
+  let t2 = new Table()
+  visualizations.push(t2)
+  t2.addData(FRevenue)
+  t2.addData(FCost)
+  t2.addData(FDebt)
+  t2.addData(FCap)
+  t2.addData(FLiabilities)
+  t2.addData(FEquity)
+  t2.addData(FAssets)
+  t2.addData(FIncome)
+  t2.addData(FExpense)
+  t2.addData(FProfit)
+  t2.plot()
 
-  let bp = new BarPercentagechart()
-  visualizations.push(bp)
-  // b.addData(TSLARevenue)
-  // b.addData(TeslaCost)
-  bp.plot()
+  let t3 = new Table()
+  visualizations.push(t3)
+  t3.addData(NIOPrice)
+  t3.addData(NIOVolumn)
+  t3.addData(NIORevenue)
+  t3.addData(NIOCost)
+  t3.addData(NIODebt)
+  t3.addData(NIOCap)
+  t3.addData(NIOLiabilities)
+  t3.addData(NIOEquity)
+  t3.addData(NIOAssets)
+  t3.addData(NIOIncome)
+  t3.addData(NIOExpense)
+  t3.addData(NIOProfit)
+
+  t3.plot()
 
   let s = new Storage()
   visualizations.push(s)
